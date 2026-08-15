@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 纳指100每日收盘 Dashboard 数据抓取脚本
-Glitch 风格 · 纯数字展示 · 动态数据注入
+Glitch 风格 · 纯数字展示 · 动态数据注入 · 音效引擎 · 局部花屏
 """
 
 import json
@@ -251,7 +251,7 @@ def build_mock_data():
 
 
 # =====================================================================
-# Glitch 风格 HTML 模板 — 动态数据注入版（含完整导航）
+# Glitch 风格 HTML 模板 — 动态数据注入版（含完整导航 + 音效 + 局部花屏）
 # =====================================================================
 HTML_TEMPLATE = r"""<!DOCTYPE html>
 <html lang="zh-CN">
@@ -397,7 +397,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       display:flex; gap:2.5vw;
       animation:tickerScrollReverse 50s linear infinite;
       width:max-content;
-      font-size:clamp(14px,2vw,20px); font-weight:700;
+      font-size:clamp(14px, 2vw, 20px);
+      font-weight:700;
     }
     .sticky-top .ticker-track-top .track-inner span { display:inline-flex; align-items:center; gap:0.6vw; }
     .sticky-top .ticker-track-top .track-inner .up { color:var(--color-rise); }
@@ -442,6 +443,14 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       cursor:pointer; font-weight:700; transition:all 0.2s; font-family:inherit; line-height:1.5;
     }
     .theme-toggle:hover { background:var(--bg-card); border-color:var(--color-rise); color:var(--text-primary); }
+    /* 静音按钮 */
+    .mute-btn {
+      background:none; border:1px solid var(--border-color); border-radius:40px;
+      color:var(--text-secondary);
+      font-size:clamp(12px,1.6vw,18px); padding:0.2vh 0.8vw;
+      cursor:pointer; font-weight:700; transition:all 0.2s; font-family:inherit; line-height:1.5;
+    }
+    .mute-btn:hover { background:var(--bg-card); border-color:var(--color-rise); color:var(--text-primary); }
     /* 导航按钮组 */
     .nav-group {
       display:flex;
@@ -492,7 +501,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       display:flex; gap:2.5vw;
       animation:tickerScroll 60s linear infinite;
       width:max-content;
-      font-size:clamp(14px,2vw,20px); font-weight:700;
+      font-size:clamp(14px, 2vw, 20px);
+      font-weight:700;
     }
     .sticky-bottom .ticker-track span { display:inline-flex; align-items:center; gap:0.6vw; }
     .sticky-bottom .ticker-track .up { color:var(--color-rise); }
@@ -695,6 +705,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       .nav-btn { font-size:10px; padding:0.1vh 1.5vw; min-width:5vw; }
       .nav-btn.today-btn { font-size:9px; padding:0.1vh 2vw; }
       .nav-group { gap:1vw; }
+      .mute-btn { font-size:11px; padding:0.1vh 1.5vw; }
     }
   </style>
 </head>
@@ -731,6 +742,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
         <button class="nav-btn" id="btnNext" disabled>→</button>
       </span>
       <button class="theme-toggle" id="themeToggle">日间</button>
+      <button class="mute-btn" id="muteBtn">🔊 音效</button>
     </div>
   </div>
 </div>
@@ -809,28 +821,215 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   function cls(c) { return c >= 0 ? "up" : "down"; }
 
   // ==============================================================
-  // 主题切换
+  // Glitch 音效引擎 (Web Audio API)
+  // ==============================================================
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  let audioCtx = null;
+  let isMuted = false;
+
+  // 读取静音状态
+  const muteState = localStorage.getItem('ndxMuted');
+  if (muteState === 'true') {
+    isMuted = true;
+  }
+
+  function initAudio() {
+    if (!audioCtx) {
+      audioCtx = new AudioCtx();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  function playGlitchSound(type) {
+    if (isMuted) return;
+    try {
+      initAudio();
+      const now = audioCtx.currentTime;
+
+      if (type === 'burst') {
+        const bufferSize = audioCtx.sampleRate * 0.08;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = (Math.random() * 2 - 1) * Math.pow(Math.random(), 3);
+        }
+        const source = audioCtx.createBufferSource();
+        source.buffer = buffer;
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        source.connect(gain);
+        gain.connect(audioCtx.destination);
+        source.start(now);
+        source.stop(now + 0.08);
+      }
+
+      if (type === 'scratch') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const freq = 800 + Math.random() * 1200;
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(freq, now);
+        osc.frequency.exponentialRampToValueAtTime(freq * 2.5, now + 0.06);
+        gain.gain.setValueAtTime(0.06, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.06);
+      }
+
+      if (type === 'switch') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.exponentialRampToValueAtTime(900, now + 0.04);
+        gain.gain.setValueAtTime(0.04, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.04);
+      }
+    } catch (e) {}
+  }
+
+  // ==============================================================
+  // 局部花屏特效 (canvas 随机区域)
+  // ==============================================================
+  function screenGlitch() {
+    if (!isMuted) playGlitchSound('burst');
+    const canvas = document.createElement('canvas');
+    canvas.style.position = 'fixed';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.zIndex = '9999';
+    canvas.style.pointerEvents = 'none';
+    canvas.style.mixBlendMode = 'difference';
+    canvas.style.opacity = '0.9';
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const w = canvas.width, h = canvas.height;
+
+    // 只画一小块随机区域（约占屏幕 5%-15%）
+    const areaSize = 0.05 + Math.random() * 0.10; // 5%~15%
+    const blockW = Math.floor(w * Math.sqrt(areaSize) * (0.6 + Math.random() * 0.8));
+    const blockH = Math.floor(h * Math.sqrt(areaSize) * (0.6 + Math.random() * 0.8));
+    const startX = Math.floor(Math.random() * (w - blockW));
+    const startY = Math.floor(Math.random() * (h - blockH));
+
+    // 局部马赛克
+    const blockSize = Math.floor(Math.random() * 12 + 6);
+    for (let y = startY; y < startY + blockH; y += blockSize) {
+      for (let x = startX; x < startX + blockW; x += blockSize) {
+        const r = Math.floor(Math.random() * 256);
+        const g = Math.floor(Math.random() * 256);
+        const b = Math.floor(Math.random() * 256);
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+        ctx.fillRect(x, y, blockSize, blockSize);
+      }
+    }
+
+    // 在局部区域加一些白色噪点
+    const imageData = ctx.getImageData(startX, startY, blockW, blockH);
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      if (Math.random() < 0.08) {
+        data[i] = 255;
+        data[i+1] = 255;
+        data[i+2] = 255;
+      }
+    }
+    ctx.putImageData(imageData, startX, startY);
+
+    // 淡出移除
+    setTimeout(() => {
+      canvas.style.transition = 'opacity 0.15s';
+      canvas.style.opacity = '0';
+      setTimeout(() => {
+        canvas.remove();
+      }, 180);
+    }, 180);
+  }
+
+  // ==============================================================
+  // 静音切换
+  // ==============================================================
+  const muteBtn = document.getElementById('muteBtn');
+  if (muteBtn) {
+    muteBtn.textContent = isMuted ? '🔇 静音' : '🔊 音效';
+    muteBtn.addEventListener('click', function() {
+      isMuted = !isMuted;
+      localStorage.setItem('ndxMuted', isMuted ? 'true' : 'false');
+      muteBtn.textContent = isMuted ? '🔇 静音' : '🔊 音效';
+      if (!isMuted) {
+        initAudio();
+        playGlitchSound('switch');
+      }
+    });
+  }
+
+  // 用户首次点击页面时激活音频上下文
+  document.addEventListener('click', function() {
+    if (!audioCtx) {
+      initAudio();
+    }
+  }, { once: true });
+
+  // ==============================================================
+  // 主题切换（自动跟随系统 + 手动覆盖）
   // ==============================================================
   const toggleBtn = document.getElementById('themeToggle');
   const htmlEl = document.documentElement;
+
+  const systemPrefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
   const storedTheme = localStorage.getItem('ndxTheme');
-  if (storedTheme === 'light') {
+
+  let useLight = false;
+  if (storedTheme !== null) {
+    useLight = (storedTheme === 'light');
+  } else {
+    useLight = systemPrefersLight;
+  }
+
+  if (useLight) {
     htmlEl.classList.add('light');
     toggleBtn.textContent = '夜间';
   } else {
+    htmlEl.classList.remove('light');
     toggleBtn.textContent = '日间';
   }
+
   toggleBtn.addEventListener('click', () => {
-    htmlEl.classList.toggle('light');
-    const isLight = htmlEl.classList.contains('light');
+    const isLight = htmlEl.classList.toggle('light');
     localStorage.setItem('ndxTheme', isLight ? 'light' : 'dark');
     toggleBtn.textContent = isLight ? '夜间' : '日间';
+    playGlitchSound('switch');
+  });
+
+  const mediaQuery = window.matchMedia('(prefers-color-scheme: light)');
+  mediaQuery.addEventListener('change', (e) => {
+    if (localStorage.getItem('ndxTheme') === null) {
+      if (e.matches) {
+        htmlEl.classList.add('light');
+        toggleBtn.textContent = '夜间';
+      } else {
+        htmlEl.classList.remove('light');
+        toggleBtn.textContent = '日间';
+      }
+    }
   });
 
   // ==============================================================
   // 渲染主数据
   // ==============================================================
-  // 顶部 Sticky
   document.getElementById('stickyPrice').textContent = idx.price ? idx.price.toLocaleString() : '--';
   document.getElementById('stickyChange').textContent = fmtPct(idx.change);
   document.getElementById('stickyChange').className = 'change ' + cls(idx.change) + ' glitch-text';
@@ -839,13 +1038,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   document.getElementById('stickyTrend').textContent = fmtPct(idx.change);
   document.getElementById('stickyDate').textContent = DATA.date;
 
-  // 主价格
   document.getElementById('mainPrice').textContent = idx.price ? idx.price.toLocaleString() : '--';
   document.getElementById('mainChange').textContent = fmtPct(idx.change);
   document.getElementById('mainChange').className = 'price-change ' + cls(idx.change) + ' glitch-text';
   document.getElementById('prevClose').textContent = idx.prev_close ? idx.prev_close.toLocaleString() : '--';
 
-  // 高/低（从历史数据取）
   if (history && history.length > 0) {
     const high = Math.max(...history);
     const low = Math.min(...history);
@@ -853,14 +1050,12 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     document.getElementById('lowPrice').textContent = low.toLocaleString();
   }
 
-  // KPI
   document.getElementById('kpiUp').textContent = idx.up;
   document.getElementById('kpiDown').textContent = idx.down;
   const trend30 = history.length >= 2 ? ((history[history.length-1] - history[0]) / history[0] * 100) : 0;
   document.getElementById('kpiTrend').textContent = (trend30 >= 0 ? "+" : "") + trend30.toFixed(2) + "%";
   document.getElementById('kpiTrend').className = 'number ' + cls(trend30) + ' glitch-text';
 
-  // 涨跌分布
   const bins = DATA.bins;
   const labels = bins.labels;
   const counts = bins.counts;
@@ -876,7 +1071,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   document.getElementById('distDown').textContent = idx.down;
   document.getElementById('distFlat').textContent = idx.flat || 0;
 
-  // 权重列表 (Top 10)
   const flowList = document.getElementById('flowList');
   const topStocks = stocks.slice().sort((a, b) => b.weight - a.weight).slice(0, 10);
   topStocks.forEach(s => {
@@ -894,13 +1088,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     `;
     flowList.appendChild(row);
   });
-  // 其他汇总
   const othersRow = document.createElement('div');
   othersRow.className = 'flow-row others';
   othersRow.textContent = '其他 ' + (stocks.length - 10) + ' 只 · 合计权重 ' + (100 - topStocks.reduce((a,b) => a + b.weight, 0)).toFixed(1) + '%';
   flowList.appendChild(othersRow);
 
-  // 领涨/领跌
   const sorted = stocks.slice().sort((a, b) => b.change - a.change);
   const top5 = sorted.slice(0, 5);
   const bottom5 = sorted.slice(-5).reverse();
@@ -926,7 +1118,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   leaderGrid.appendChild(col1);
   leaderGrid.appendChild(col2);
 
-  // 30日趋势
   if (history.length >= 2) {
     const change30 = (history[history.length-1] - history[0]) / history[0] * 100;
     const high = Math.max(...history);
@@ -938,7 +1129,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     document.getElementById('trendLow').textContent = low.toLocaleString();
     document.getElementById('trendLatest').textContent = latest.toLocaleString();
 
-    // 近5日
     const mini = document.getElementById('miniPrices');
     mini.innerHTML = '<span>近5日</span>';
     const last5 = history.slice(-5);
@@ -951,13 +1141,10 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     });
   }
 
-  // ==============================================================
-  // 构建时间
-  // ==============================================================
   document.getElementById('buildTime').textContent = new Date().toLocaleString('zh-CN');
 
   // ==============================================================
-  // 滚动行情数据（从真实数据生成）
+  // 滚动行情数据
   // ==============================================================
   function buildTickerHTML(data) {
     let html = '';
@@ -975,7 +1162,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   document.getElementById('tickerTopInner').innerHTML = buildTickerHTML(stocks);
   document.getElementById('tickerBottomTrack').innerHTML = buildTickerHTML(stocks);
 
-  // 悬停暂停
   const topTrack = document.querySelector('.sticky-top .track-inner');
   const bottomTrack = document.querySelector('.sticky-bottom .ticker-track');
   [topTrack, bottomTrack].forEach(track => {
@@ -986,12 +1172,13 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   });
 
   // ==============================================================
-  // Glitch 引擎（含美元彩蛋 50%）
+  // Glitch 引擎（含美元彩蛋 50% + 局部花屏 15%）
   // ==============================================================
   const glitchElements = document.querySelectorAll('.glitch-text');
 
   function triggerGlitch(el) {
     if (!el) return;
+    playGlitchSound('burst');
     el.classList.remove('active');
     void el.offsetWidth;
     el.classList.add('active');
@@ -1012,6 +1199,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       if (!originalTexts.has(target)) {
         originalTexts.set(target, target.textContent);
       }
+      playGlitchSound('scratch');
       target.textContent = '$';
       target.style.color = 'var(--color-rise)';
       triggerGlitch(target);
@@ -1024,6 +1212,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       if (!originalTexts.has(el)) {
         originalTexts.set(el, el.textContent);
       }
+      playGlitchSound('scratch');
       el.textContent = '$';
       el.style.color = 'var(--color-rise)';
       triggerGlitch(el);
@@ -1044,6 +1233,10 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     for (let i=0; i<count; i++) {
       const el = glitchElements[Math.floor(Math.random() * glitchElements.length)];
       if (el) triggerGlitch(el);
+    }
+    // 局部花屏特效 - 15% 概率
+    if (Math.random() < 0.15) {
+      screenGlitch();
     }
     if (Math.random() < 0.5) {
       dollarEasterEgg();
@@ -1076,6 +1269,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     if (switching || !stickyPrice) return;
     switching = true;
 
+    playGlitchSound('switch');
     triggerGlitch(stickyPrice);
     if (stickyChange) {
       setTimeout(() => triggerGlitch(stickyChange), 50);
@@ -1104,7 +1298,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   }, 1800);
 
   // ==============================================================
-  // 导航（前一日/后一日/今天）- 完全基于 HISTORY_DATES
+  // 导航
   // ==============================================================
   (function() {
     const btnPrev = document.getElementById('btnPrev');
@@ -1130,7 +1324,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       if (btnToday) btnToday.style.display = 'none';
     }
 
-    // 如果没有历史日期，禁用所有按钮
     if (!HISTORY_DATES || HISTORY_DATES.length === 0) {
       btnPrev.disabled = true;
       btnNext.disabled = true;
@@ -1144,7 +1337,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       return;
     }
 
-    // 前一日
     if (idx2 > 0) {
       const prevDate = HISTORY_DATES[idx2 - 1];
       btnPrev.disabled = false;
@@ -1155,7 +1347,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       btnPrev.disabled = true;
     }
 
-    // 后一日
     if (idx2 < HISTORY_DATES.length - 1) {
       const nextDate = HISTORY_DATES[idx2 + 1];
       btnNext.disabled = false;
@@ -1173,7 +1364,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     }
   })();
 
-  console.log('✦ Glitch 风格 · 数据已注入 · 导航已启用 ✦');
+  console.log('✦ Glitch 风格 · 音效已加载 · 局部花屏已启用 ✦');
 </script>
 </body>
 </html>
@@ -1242,7 +1433,7 @@ def generate_html(data, history_dates, is_history=False):
 
 def main():
     print("=" * 50)
-    print("NDX Dashboard 数据抓取 (Glitch 风格 - 动态数据)")
+    print("NDX Dashboard 数据抓取 (Glitch 风格 · 音效 · 局部花屏)")
     print(f"开始时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 50)
 
