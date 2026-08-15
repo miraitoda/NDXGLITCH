@@ -397,7 +397,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       display:flex; gap:2.5vw;
       animation:tickerScrollReverse 50s linear infinite;
       width:max-content;
-      font-size:clamp(13px,2vw,18px); font-weight:700;
+      font-size:clamp(14px,2vw,20px); font-weight:700;
     }
     .sticky-top .ticker-track-top .track-inner span { display:inline-flex; align-items:center; gap:0.6vw; }
     .sticky-top .ticker-track-top .track-inner .up { color:var(--color-rise); }
@@ -492,7 +492,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       display:flex; gap:2.5vw;
       animation:tickerScroll 60s linear infinite;
       width:max-content;
-      font-size:clamp(14px,2.2vw,20px); font-weight:700;
+      font-size:clamp(14px,2vw,20px); font-weight:700;
     }
     .sticky-bottom .ticker-track span { display:inline-flex; align-items:center; gap:0.6vw; }
     .sticky-bottom .ticker-track .up { color:var(--color-rise); }
