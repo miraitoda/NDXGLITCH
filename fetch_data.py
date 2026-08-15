@@ -427,6 +427,14 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       color:var(--color-rise); background:var(--color-rise-bg);
       padding:0.2vh 1.2vw; border-radius:40px; border:1px solid var(--badge-border);
     }
+    /* 日期样式 */
+    .sticky-date {
+      font-size:clamp(12px,1.6vw,18px);
+      color:var(--text-muted);
+      margin-left:0.5vw;
+      font-weight:600;
+      letter-spacing:0.5px;
+    }
     .theme-toggle {
       background:none; border:1px solid var(--border-color); border-radius:40px;
       color:var(--text-secondary);
@@ -586,7 +594,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     .trend-stats {
       display:flex;
       flex-wrap:wrap;
-      gap:1.2vw 3vw;  /* 减小间隙，防止换行 */
+      gap:1.2vw 3vw;
       background:var(--bg-card);
       padding:1.2vw 2vw;
       border-radius:8px;
@@ -605,7 +613,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       font-weight:900;
       line-height:1.2;
       letter-spacing:-1px;
-      white-space:nowrap;  /* 强制不换行，三角形和数字在同一行 */
+      white-space:nowrap;
     }
     .mini-prices {
       display:flex; flex-wrap:wrap; gap:1vw;
@@ -648,6 +656,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       .theme-toggle { font-size:12px; padding:0.1vh 2vw; }
       .trend-stats { gap:1.5vw 2.5vw; }
       .trend-item .value { font-size:clamp(26px,6vw,40px); }
+      .sticky-date { font-size:11px; margin-left:0.3vw; }
     }
   </style>
 </head>
@@ -670,6 +679,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       <span class="price glitch-text" id="stickyPrice">--</span>
       <span class="change up glitch-text" id="stickyChange">--</span>
       <span class="badge glitch-text">已收盘</span>
+      <!-- ★ 新增：收盘日期 -->
+      <span class="sticky-date glitch-text" id="stickyDate">--</span>
     </div>
     <div class="meta">
       <span>涨 <strong id="stickyUp" style="color:var(--color-rise);">--</strong></span>
@@ -783,6 +794,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   document.getElementById('stickyUp').textContent = idx.up;
   document.getElementById('stickyDown').textContent = idx.down;
   document.getElementById('stickyTrend').textContent = fmtPct(idx.change);
+  // ★ 显示收盘日期
+  document.getElementById('stickyDate').textContent = DATA.date;
 
   // 主价格
   document.getElementById('mainPrice').textContent = idx.price ? idx.price.toLocaleString() : '--';
@@ -1111,93 +1124,3 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 </body>
 </html>
 """
-
-
-def get_existing_history_dates(output_dir="docs"):
-    import glob
-    import re
-    history_dir = os.path.join(output_dir, "history")
-    if not os.path.exists(history_dir):
-        return []
-    dates = []
-    for path in glob.glob(os.path.join(history_dir, "*.html")):
-        name = os.path.basename(path)
-        m = re.match(r"(\d{4}-\d{2}-\d{2})\.html", name)
-        if m:
-            dates.append(m.group(1))
-    dates.sort()
-    return dates
-
-
-def manage_history(data, output_dir="docs", keep_days=30):
-    import glob
-    import os
-    history_dir = os.path.join(output_dir, "history")
-    os.makedirs(history_dir, exist_ok=True)
-
-    date_str = data["date"]
-    history_file = os.path.join(history_dir, f"{date_str}.html")
-
-    history_dates = get_existing_history_dates(output_dir)
-    if date_str not in history_dates:
-        history_dates.append(date_str)
-    history_dates.sort()
-
-    html = generate_html(data, history_dates, is_history=True)
-
-    with open(history_file, "w", encoding="utf-8") as f:
-        f.write(html)
-    print(f"  历史快照已保存: {history_file}")
-
-    all_files = sorted(glob.glob(os.path.join(history_dir, "*.html")))
-    if len(all_files) > keep_days:
-        for old_file in all_files[:-keep_days]:
-            os.remove(old_file)
-            print(f"  清理旧历史: {os.path.basename(old_file)}")
-
-    return history_dates
-
-
-def generate_html(data, history_dates, is_history=False):
-    import json
-    data_json = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
-    history_dates_json = json.dumps(history_dates, ensure_ascii=False)
-    is_history_str = "true" if is_history else "false"
-
-    html = HTML_TEMPLATE
-    html = html.replace("__DATA_JSON__", data_json)
-    html = html.replace("__HISTORY_DATES__", history_dates_json)
-    html = html.replace("__IS_HISTORY__", is_history_str)
-    return html
-
-
-def main():
-    print("=" * 50)
-    print("NDX Dashboard 数据抓取 (Glitch 风格 - 动态数据)")
-    print(f"开始时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print("=" * 50)
-
-    ensure_dir()
-
-    data = build_data()
-    print(f"\n数据日期: {data['date']}")
-    print(f"指数涨跌: {data['index']['change']}%")
-    print(f"成分股数: {data['index']['total']}")
-
-    print("\n[历史快照管理]")
-    history_dates = manage_history(data, OUTPUT_DIR, keep_days=30)
-    print(f"  历史日期: {history_dates}")
-
-    print("\n[生成主页面]")
-    html = generate_html(data, history_dates, is_history=False)
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        f.write(html)
-    print(f"  已写入: {OUTPUT_FILE}")
-
-    print("\n" + "=" * 50)
-    print("完成!")
-    print("=" * 50)
-
-
-if __name__ == "__main__":
-    main()
