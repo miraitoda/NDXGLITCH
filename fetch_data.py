@@ -251,7 +251,7 @@ def build_mock_data():
 
 
 # =====================================================================
-# Glitch 风格 HTML 模板 — 动态数据注入版
+# Glitch 风格 HTML 模板 — 动态数据注入版（含完整导航）
 # =====================================================================
 HTML_TEMPLATE = r"""<!DOCTYPE html>
 <html lang="zh-CN">
@@ -380,7 +380,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 
     .container { max-width:720px; margin:0 auto; position:relative; z-index:1; }
 
-    /* ===== 顶部 Sticky ===== */
+    /* ===== 顶部 Sticky（含导航按钮） ===== */
     .sticky-top {
       position:fixed; top:0; left:0; right:0; z-index:100;
       background:var(--bg-sticky);
@@ -420,6 +420,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     .sticky-top .meta {
       font-size:clamp(12px,1.8vw,16px); font-weight:700; color:var(--text-muted);
       display:flex; gap:1.5vw; align-items:center;
+      flex-wrap:wrap;
     }
     .sticky-top .meta strong { color:var(--text-primary); font-weight:900; }
     .sticky-top .badge {
@@ -441,6 +442,41 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       cursor:pointer; font-weight:700; transition:all 0.2s; font-family:inherit; line-height:1.5;
     }
     .theme-toggle:hover { background:var(--bg-card); border-color:var(--color-rise); color:var(--text-primary); }
+    /* 导航按钮组 */
+    .nav-group {
+      display:flex;
+      align-items:center;
+      gap:0.3vw;
+      margin-left:0.5vw;
+    }
+    .nav-btn {
+      background:none;
+      border:1px solid var(--border-color);
+      border-radius:40px;
+      color:var(--text-secondary);
+      font-size:clamp(10px,1.2vw,14px);
+      padding:0.1vh 0.6vw;
+      cursor:pointer;
+      font-weight:700;
+      transition:all 0.2s;
+      font-family:inherit;
+      line-height:1.5;
+      min-width:2.2vw;
+      text-align:center;
+    }
+    .nav-btn:hover:not(:disabled) {
+      background:var(--bg-card);
+      border-color:var(--color-rise);
+      color:var(--text-primary);
+    }
+    .nav-btn:disabled {
+      opacity:0.3;
+      cursor:not-allowed;
+    }
+    .nav-btn.today-btn {
+      font-size:clamp(9px,1vw,12px);
+      padding:0.1vh 0.8vw;
+    }
 
     /* ===== 底部 Sticky ===== */
     .sticky-bottom {
@@ -656,6 +692,9 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       .trend-stats { gap:1.5vw 2.5vw; }
       .trend-item .value { font-size:clamp(26px,6vw,40px); }
       .sticky-date { font-size:11px; margin-left:0.3vw; }
+      .nav-btn { font-size:10px; padding:0.1vh 1.5vw; min-width:5vw; }
+      .nav-btn.today-btn { font-size:9px; padding:0.1vh 2vw; }
+      .nav-group { gap:1vw; }
     }
   </style>
 </head>
@@ -685,6 +724,12 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       <span>跌 <strong id="stickyDown" style="color:var(--color-fall);">--</strong></span>
       <span style="color:var(--text-dim);">|</span>
       <span style="color:var(--text-muted);">30日 <strong id="stickyTrend" style="color:var(--color-rise);">--</strong></span>
+      <!-- 导航按钮组 -->
+      <span class="nav-group" id="navGroup">
+        <button class="nav-btn" id="btnPrev" disabled>←</button>
+        <button class="nav-btn today-btn" id="btnToday" style="display:none;">今天</button>
+        <button class="nav-btn" id="btnNext" disabled>→</button>
+      </span>
       <button class="theme-toggle" id="themeToggle">日间</button>
     </div>
   </div>
@@ -1059,68 +1104,76 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   }, 1800);
 
   // ==============================================================
-  // 导航（前一日/后一日/今天）
+  // 导航（前一日/后一日/今天）- 完全基于 HISTORY_DATES
   // ==============================================================
-  (function(){
-    const btnPrev = document.getElementById("btnPrev");
-    const btnNext = document.getElementById("btnNext");
-    const btnToday = document.getElementById("btnToday");
+  (function() {
+    const btnPrev = document.getElementById('btnPrev');
+    const btnNext = document.getElementById('btnNext');
+    const btnToday = document.getElementById('btnToday');
+
     if (!btnPrev || !btnNext) return;
 
-    const navBtns = document.querySelector('.meta');
-    if (navBtns && !document.getElementById('btnPrev')) {
-      const btnGroup = document.createElement('span');
-      btnGroup.style.display = 'flex';
-      btnGroup.style.gap = '0.5vw';
-      btnGroup.innerHTML = `
-        <button class="theme-toggle" id="btnPrev" disabled style="font-size:clamp(10px,1.2vw,14px);padding:0.1vh 0.6vw;">←</button>
-        <button class="theme-toggle" id="btnToday" style="display:none;font-size:clamp(10px,1.2vw,14px);padding:0.1vh 0.6vw;">今天</button>
-        <button class="theme-toggle" id="btnNext" disabled style="font-size:clamp(10px,1.2vw,14px);padding:0.1vh 0.6vw;">→</button>
-      `;
-      navBtns.appendChild(btnGroup);
-    }
-
-    const btnPrev2 = document.getElementById('btnPrev');
-    const btnNext2 = document.getElementById('btnNext');
-    const btnToday2 = document.getElementById('btnToday');
-    if (!btnPrev2 || !btnNext2) return;
-
     const path = window.location.pathname;
-    const isHistory = path.includes("/history/");
+    const isHistory = path.includes('/history/');
     let currentDate = DATA.date;
+
     if (isHistory) {
       const m = path.match(/history\/(\d{4}-\d{2}-\d{2})/);
       if (m) currentDate = m[1];
-      if (btnToday2) {
-        btnToday2.style.display = "inline-block";
-        btnToday2.onclick = function() { window.location.href = "../index.html"; };
+      if (btnToday) {
+        btnToday.style.display = 'inline-block';
+        btnToday.onclick = function() {
+          window.location.href = '../index.html';
+        };
       }
+    } else {
+      if (btnToday) btnToday.style.display = 'none';
+    }
+
+    // 如果没有历史日期，禁用所有按钮
+    if (!HISTORY_DATES || HISTORY_DATES.length === 0) {
+      btnPrev.disabled = true;
+      btnNext.disabled = true;
+      return;
     }
 
     const idx2 = HISTORY_DATES.indexOf(currentDate);
-    if (idx2 === -1) return;
+    if (idx2 === -1) {
+      btnPrev.disabled = true;
+      btnNext.disabled = true;
+      return;
+    }
 
+    // 前一日
     if (idx2 > 0) {
       const prevDate = HISTORY_DATES[idx2 - 1];
-      btnPrev2.disabled = false;
-      btnPrev2.onclick = function() {
-        window.location.href = isHistory ? "./" + prevDate + ".html" : "./history/" + prevDate + ".html";
+      btnPrev.disabled = false;
+      btnPrev.onclick = function() {
+        window.location.href = isHistory ? './' + prevDate + '.html' : './history/' + prevDate + '.html';
       };
+    } else {
+      btnPrev.disabled = true;
     }
+
+    // 后一日
     if (idx2 < HISTORY_DATES.length - 1) {
       const nextDate = HISTORY_DATES[idx2 + 1];
-      btnNext2.disabled = false;
+      btnNext.disabled = false;
       if (nextDate === DATA.date && isHistory) {
-        btnNext2.onclick = function() { window.location.href = "../index.html"; };
+        btnNext.onclick = function() {
+          window.location.href = '../index.html';
+        };
       } else {
-        btnNext2.onclick = function() {
-          window.location.href = isHistory ? "./" + nextDate + ".html" : "./history/" + nextDate + ".html";
+        btnNext.onclick = function() {
+          window.location.href = isHistory ? './' + nextDate + '.html' : './history/' + nextDate + '.html';
         };
       }
+    } else {
+      btnNext.disabled = true;
     }
   })();
 
-  console.log('✦ Glitch 风格 · 数据已注入 ✦');
+  console.log('✦ Glitch 风格 · 数据已注入 · 导航已启用 ✦');
 </script>
 </body>
 </html>
@@ -1174,7 +1227,6 @@ def manage_history(data, output_dir="docs", keep_days=30):
 
 def generate_html(data, history_dates, is_history=False):
     import json
-    # 注入构建时间到 data 中
     data_with_time = data.copy()
     data_with_time["build_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     data_json = json.dumps(data_with_time, ensure_ascii=False, separators=(",", ":"))
