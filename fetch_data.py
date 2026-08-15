@@ -2,10 +2,9 @@
 # -*- coding: utf-8 -*-
 """
 纳指100每日收盘 Dashboard 数据抓取脚本
-Glitch 风格 · 纯数字展示
+Glitch 风格 · 纯数字展示 · 动态数据注入
 """
 
-import requests
 import json
 import math
 import os
@@ -40,6 +39,7 @@ def fetch_stock_data(tickers, max_batch=25):
                 group_by="ticker"
             )
             if data.empty:
+                print(f"    警告: 批次返回空数据")
                 continue
             if len(batch) == 1:
                 all_data[batch[0]] = data
@@ -47,6 +47,8 @@ def fetch_stock_data(tickers, max_batch=25):
                 for ticker in batch:
                     if ticker in data.columns.get_level_values(0):
                         all_data[ticker] = data[ticker]
+                    else:
+                        print(f"    警告: {ticker} 不在返回数据中")
         except Exception as e:
             print(f"    失败: {e}")
     return all_data
@@ -88,6 +90,7 @@ def build_data():
     tickers = [s[0] for s in STOCKS]
     print("\n抓取个股数据...")
     raw_data = fetch_stock_data(tickers)
+    print(f"  成功获取 {len(raw_data)} 只股票数据")
 
     stocks = []
     for ticker, name, sector, weight in STOCKS:
@@ -95,7 +98,8 @@ def build_data():
             print(f"  缺失: {ticker}")
             continue
         df = raw_data[ticker]
-        if len(df) < 2:
+        if df is None or df.empty or len(df) < 2:
+            print(f"  数据不足: {ticker} (len={len(df) if df is not None else 0})")
             continue
         try:
             latest = df.iloc[-1]
@@ -109,6 +113,8 @@ def build_data():
             stocks.append({"ticker": ticker, "name": name, "sector": sector, "weight": weight, "change": change})
         except Exception as e:
             print(f"  处理失败 {ticker}: {e}")
+
+    print(f"  成功解析 {len(stocks)} 只股票")
 
     if len(stocks) < 50:
         print(f"警告: 仅获取到 {len(stocks)} 只，使用模拟数据...")
@@ -245,7 +251,7 @@ def build_mock_data():
 
 
 # =====================================================================
-# 最终确认的 Glitch 风格 HTML 模板（纯数字展示，无图表）
+# Glitch 风格 HTML 模板 — 动态数据注入版
 # =====================================================================
 HTML_TEMPLATE = r"""<!DOCTYPE html>
 <html lang="zh-CN">
@@ -320,7 +326,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       position:relative;
     }
 
-    /* ===== 背景光晕（无网格） ===== */
+    /* ===== 背景光晕 ===== */
     .bg-layers {
       position:fixed;
       inset:0;
@@ -648,15 +654,15 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   <div class="ticker-track-top"><div class="track-inner" id="tickerTopInner"></div></div>
   <div class="top-row">
     <div class="left">
-      <span class="price glitch-text" id="stickyPrice">19,842.50</span>
-      <span class="change up glitch-text" id="stickyChange">▲ +1.23%</span>
+      <span class="price glitch-text" id="stickyPrice">--</span>
+      <span class="change up glitch-text" id="stickyChange">--</span>
       <span class="badge glitch-text">已收盘</span>
     </div>
     <div class="meta">
-      <span>涨 <strong id="stickyUp" style="color:var(--color-rise);">63</strong></span>
-      <span>跌 <strong id="stickyDown" style="color:var(--color-fall);">35</strong></span>
+      <span>涨 <strong id="stickyUp" style="color:var(--color-rise);">--</strong></span>
+      <span>跌 <strong id="stickyDown" style="color:var(--color-fall);">--</strong></span>
       <span style="color:var(--text-dim);">|</span>
-      <span style="color:var(--text-muted);">30日 <strong id="stickyTrend" style="color:var(--color-rise);">+5.67%</strong></span>
+      <span style="color:var(--text-muted);">30日 <strong id="stickyTrend" style="color:var(--color-rise);">--</strong></span>
       <button class="theme-toggle" id="themeToggle">日间</button>
     </div>
   </div>
@@ -669,92 +675,72 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <div class="container">
   <div class="block price-block">
     <div>
-      <span class="price-main glitch-text" id="mainPrice">19,842.50</span>
-      <span class="price-change up glitch-text" id="mainChange">▲ +1.23%</span>
+      <span class="price-main glitch-text" id="mainPrice">--</span>
+      <span class="price-change up glitch-text" id="mainChange">--</span>
     </div>
     <div class="price-sub">
-      <span>前收 <strong>19,601.20</strong></span>
-      <span>高 <strong style="color:var(--color-rise);">19,920</strong></span>
-      <span>低 <strong style="color:var(--color-fall);">19,770</strong></span>
+      <span>前收 <strong id="prevClose">--</strong></span>
+      <span>高 <strong id="highPrice" style="color:var(--color-rise);">--</strong></span>
+      <span>低 <strong id="lowPrice" style="color:var(--color-fall);">--</strong></span>
       <span style="color:var(--color-rise);">●</span> 已收盘
     </div>
   </div>
   <hr class="divider">
   <div class="block kpi-grid">
-    <div class="kpi-item"><div class="label">上涨</div><div class="number up glitch-text" id="kpiUp">63</div><div class="sub">家</div></div>
-    <div class="kpi-item"><div class="label">下跌</div><div class="number down glitch-text" id="kpiDown">35</div><div class="sub">家</div></div>
-    <div class="kpi-item"><div class="label">30日涨跌</div><div class="number up glitch-text" id="kpiTrend">+5.67%</div><div class="sub">区间</div></div>
+    <div class="kpi-item"><div class="label">上涨</div><div class="number up glitch-text" id="kpiUp">--</div><div class="sub">家</div></div>
+    <div class="kpi-item"><div class="label">下跌</div><div class="number down glitch-text" id="kpiDown">--</div><div class="sub">家</div></div>
+    <div class="kpi-item"><div class="label">30日涨跌</div><div class="number up glitch-text" id="kpiTrend">--</div><div class="sub">区间</div></div>
   </div>
   <hr class="divider">
   <div class="block">
-    <div class="dist-grid">
-      <span class="dist-chip fall"><span class="num fall glitch-text">3</span> &lt;-3%</span>
-      <span class="dist-chip fall"><span class="num fall glitch-text">7</span> -3~-2</span>
-      <span class="dist-chip fall"><span class="num fall glitch-text">12</span> -2~-1</span>
-      <span class="dist-chip fall"><span class="num fall glitch-text">13</span> -1~0</span>
-      <span class="dist-chip rise"><span class="num rise glitch-text">18</span> 0~1</span>
-      <span class="dist-chip rise"><span class="num rise glitch-text">20</span> 1~2</span>
-      <span class="dist-chip rise"><span class="num rise glitch-text">14</span> 2~3</span>
-      <span class="dist-chip rise"><span class="num rise glitch-text">11</span> &gt;3%</span>
+    <div class="dist-grid" id="distGrid">
+      <!-- 由 JS 动态生成 -->
     </div>
     <div class="dist-total">
-      上涨 <strong style="color:var(--color-rise);" class="glitch-text">63</strong>  · 下跌 <strong style="color:var(--color-fall);" class="glitch-text">35</strong>  · 平盘 <strong style="color:var(--text-muted);">2</strong>
+      上涨 <strong style="color:var(--color-rise);" class="glitch-text" id="distUp">--</strong>  · 下跌 <strong style="color:var(--color-fall);" class="glitch-text" id="distDown">--</strong>  · 平盘 <strong style="color:var(--text-muted);" id="distFlat">--</strong>
     </div>
   </div>
   <hr class="divider">
-  <div class="block flow-list">
-    <div class="flow-row"><span class="left-part"><span class="ticker glitch-text">AAPL</span><span class="name">苹果</span></span><span class="right-part"><span class="weight">12.1%</span><span class="change up glitch-text">+0.8%</span></span></div>
-    <div class="flow-row"><span class="left-part"><span class="ticker glitch-text">MSFT</span><span class="name">微软</span></span><span class="right-part"><span class="weight">10.5%</span><span class="change up glitch-text">+2.1%</span></span></div>
-    <div class="flow-row"><span class="left-part"><span class="ticker glitch-text">NVDA</span><span class="name">英伟达</span></span><span class="right-part"><span class="weight">8.9%</span><span class="change up glitch-text">+3.4%</span></span></div>
-    <div class="flow-row"><span class="left-part"><span class="ticker glitch-text">GOOGL</span><span class="name">谷歌</span></span><span class="right-part"><span class="weight">6.2%</span><span class="change down glitch-text">-0.4%</span></span></div>
-    <div class="flow-row"><span class="left-part"><span class="ticker glitch-text">AMZN</span><span class="name">亚马逊</span></span><span class="right-part"><span class="weight">5.8%</span><span class="change up glitch-text">+1.2%</span></span></div>
-    <div class="flow-row"><span class="left-part"><span class="ticker glitch-text">META</span><span class="name">Meta</span></span><span class="right-part"><span class="weight">4.5%</span><span class="change up glitch-text">+2.0%</span></span></div>
-    <div class="flow-row"><span class="left-part"><span class="ticker glitch-text">AVGO</span><span class="name">博通</span></span><span class="right-part"><span class="weight">4.1%</span><span class="change up glitch-text">+1.7%</span></span></div>
-    <div class="flow-row"><span class="left-part"><span class="ticker glitch-text">TSLA</span><span class="name">特斯拉</span></span><span class="right-part"><span class="weight">3.7%</span><span class="change down glitch-text">-2.3%</span></span></div>
-    <div class="flow-row"><span class="left-part"><span class="ticker glitch-text">JPM</span><span class="name">摩根大通</span></span><span class="right-part"><span class="weight">2.9%</span><span class="change up glitch-text">+0.5%</span></span></div>
-    <div class="flow-row"><span class="left-part"><span class="ticker glitch-text">V</span><span class="name">Visa</span></span><span class="right-part"><span class="weight">2.6%</span><span class="change down glitch-text">-0.1%</span></span></div>
-    <div class="flow-row others">其他 90 只 · 合计权重 38.7%</div>
+  <div class="block flow-list" id="flowList">
+    <!-- 由 JS 动态生成 Top 10 -->
   </div>
   <hr class="divider">
-  <div class="block leader-grid">
-    <div class="leader-col"><div class="col-title" style="color:var(--color-rise);">▲ 领涨</div>
-      <div class="leader-item"><span class="glitch-text">NVDA</span><span class="val glitch-text" style="color:var(--color-rise);">+3.4%</span></div>
-      <div class="leader-item"><span class="glitch-text">MSFT</span><span class="val glitch-text" style="color:var(--color-rise);">+2.1%</span></div>
-      <div class="leader-item"><span class="glitch-text">META</span><span class="val glitch-text" style="color:var(--color-rise);">+2.0%</span></div>
-      <div class="leader-item"><span class="glitch-text">AVGO</span><span class="val glitch-text" style="color:var(--color-rise);">+1.7%</span></div>
-      <div class="leader-item"><span class="glitch-text">AMZN</span><span class="val glitch-text" style="color:var(--color-rise);">+1.2%</span></div>
-    </div>
-    <div class="leader-col"><div class="col-title" style="color:var(--color-fall);">▼ 领跌</div>
-      <div class="leader-item"><span class="glitch-text">TSLA</span><span class="val glitch-text" style="color:var(--color-fall);">-2.3%</span></div>
-      <div class="leader-item"><span class="glitch-text">NFLX</span><span class="val glitch-text" style="color:var(--color-fall);">-1.9%</span></div>
-      <div class="leader-item"><span class="glitch-text">AMD</span><span class="val glitch-text" style="color:var(--color-fall);">-1.5%</span></div>
-      <div class="leader-item"><span class="glitch-text">INTC</span><span class="val glitch-text" style="color:var(--color-fall);">-1.1%</span></div>
-      <div class="leader-item"><span class="glitch-text">PYPL</span><span class="val glitch-text" style="color:var(--color-fall);">-0.8%</span></div>
-    </div>
+  <div class="block leader-grid" id="leaderGrid">
+    <!-- 由 JS 动态生成 -->
   </div>
   <hr class="divider">
   <div class="block">
     <div class="trend-stats">
-      <div class="trend-item"><div class="label">区间涨跌</div><div class="value glitch-text" style="color:var(--color-rise);">+5.67%</div></div>
-      <div class="trend-item"><div class="label">最高</div><div class="value glitch-text" style="color:var(--color-rise);">19,920</div></div>
-      <div class="trend-item"><div class="label">最低</div><div class="value glitch-text" style="color:var(--color-fall);">18,770</div></div>
-      <div class="trend-item"><div class="label">最新</div><div class="value glitch-text" style="color:var(--text-primary);">19,842</div></div>
+      <div class="trend-item"><div class="label">区间涨跌</div><div class="value glitch-text" id="trendChange" style="color:var(--color-rise);">--</div></div>
+      <div class="trend-item"><div class="label">最高</div><div class="value glitch-text" id="trendHigh" style="color:var(--color-rise);">--</div></div>
+      <div class="trend-item"><div class="label">最低</div><div class="value glitch-text" id="trendLow" style="color:var(--color-fall);">--</div></div>
+      <div class="trend-item"><div class="label">最新</div><div class="value glitch-text" id="trendLatest" style="color:var(--text-primary);">--</div></div>
     </div>
-    <div class="mini-prices">
-      <span>近5日</span>
-      <span class="glitch-text">19,610</span>
-      <span class="glitch-text">19,720</span>
-      <span class="glitch-text" style="color:var(--color-rise);">19,840</span>
-      <span class="glitch-text" style="color:var(--color-rise);">19,900</span>
-      <span class="latest glitch-text">19,842</span>
+    <div class="mini-prices" id="miniPrices">
+      <!-- 由 JS 动态生成 -->
     </div>
   </div>
   <div style="text-align:center; color:var(--text-dim); font-size:10px; letter-spacing:2px; padding:3vw 0 1vw; border-top:1px solid var(--border-color); margin-top:2vw; font-weight:700; transition:color 0.3s,border-color 0.3s;">
-    <span style="color:var(--color-rise);">✦</span> 数据模拟 · 光晕全开 · 美元彩蛋 50% <span style="color:var(--color-fall);">✦</span>
+    数据来自 Yahoo Finance · 每日自动更新 · 仅供参考
   </div>
 </div>
 
 <script>
+  // ==============================================================
+  // 数据注入
+  // ==============================================================
+  const DATA = __DATA_JSON__;
+  const HISTORY_DATES = __HISTORY_DATES__;
+  const IS_HISTORY = __IS_HISTORY__;
+
+  const idx = DATA.index;
+  const stocks = DATA.stocks;
+  const history = DATA.history;
+
+  function fmtPct(c) { return (c >= 0 ? "▲ +" : "▼ ") + c.toFixed(2) + "%"; }
+  function fmtPctRaw(c) { return (c >= 0 ? "+" : "") + c.toFixed(2) + "%"; }
+  function cls(c) { return c >= 0 ? "up" : "down"; }
+
   // ==============================================================
   // 主题切换
   // ==============================================================
@@ -775,40 +761,148 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   });
 
   // ==============================================================
-  // 滚动行情数据（★ 加了 glitch-text 类，让滚动条参与 Glitch）
+  // 渲染主数据
   // ==============================================================
-  const tickerData = [
-    { ticker:'AAPL', change:'+0.8%', up:true },
-    { ticker:'MSFT', change:'+2.1%', up:true },
-    { ticker:'NVDA', change:'+3.4%', up:true },
-    { ticker:'GOOGL', change:'-0.4%', up:false },
-    { ticker:'AMZN', change:'+1.2%', up:true },
-    { ticker:'META', change:'+2.0%', up:true },
-    { ticker:'TSLA', change:'-2.3%', up:false },
-    { ticker:'NFLX', change:'-1.9%', up:false },
-    { ticker:'AVGO', change:'+1.7%', up:true },
-    { ticker:'AMD', change:'-1.5%', up:false },
-    { ticker:'INTC', change:'-1.1%', up:false },
-    { ticker:'JPM', change:'+0.5%', up:true }
-  ];
+  // 顶部 Sticky
+  document.getElementById('stickyPrice').textContent = idx.price ? idx.price.toLocaleString() : '--';
+  document.getElementById('stickyChange').textContent = fmtPct(idx.change);
+  document.getElementById('stickyChange').className = 'change ' + cls(idx.change) + ' glitch-text';
+  document.getElementById('stickyUp').textContent = idx.up;
+  document.getElementById('stickyDown').textContent = idx.down;
+  document.getElementById('stickyTrend').textContent = fmtPct(idx.change);
 
+  // 主价格
+  document.getElementById('mainPrice').textContent = idx.price ? idx.price.toLocaleString() : '--';
+  document.getElementById('mainChange').textContent = fmtPct(idx.change);
+  document.getElementById('mainChange').className = 'price-change ' + cls(idx.change) + ' glitch-text';
+  document.getElementById('prevClose').textContent = idx.prev_close ? idx.prev_close.toLocaleString() : '--';
+
+  // 高/低（从历史数据取）
+  if (history && history.length > 0) {
+    const high = Math.max(...history);
+    const low = Math.min(...history);
+    document.getElementById('highPrice').textContent = high.toLocaleString();
+    document.getElementById('lowPrice').textContent = low.toLocaleString();
+  }
+
+  // KPI
+  document.getElementById('kpiUp').textContent = idx.up;
+  document.getElementById('kpiDown').textContent = idx.down;
+  const trend30 = history.length >= 2 ? ((history[history.length-1] - history[0]) / history[0] * 100) : 0;
+  document.getElementById('kpiTrend').textContent = fmtPct(trend30);
+  document.getElementById('kpiTrend').className = 'number ' + cls(trend30) + ' glitch-text';
+
+  // 涨跌分布
+  const bins = DATA.bins;
+  const labels = bins.labels;
+  const counts = bins.counts;
+  const distGrid = document.getElementById('distGrid');
+  labels.forEach((lbl, i) => {
+    const isUp = i >= 4;
+    const span = document.createElement('span');
+    span.className = 'dist-chip ' + (isUp ? 'rise' : 'fall');
+    span.innerHTML = '<span class="num ' + (isUp ? 'rise' : 'fall') + ' glitch-text">' + counts[i] + '</span> ' + lbl;
+    distGrid.appendChild(span);
+  });
+  document.getElementById('distUp').textContent = idx.up;
+  document.getElementById('distDown').textContent = idx.down;
+  document.getElementById('distFlat').textContent = idx.flat || 0;
+
+  // 权重列表 (Top 10)
+  const flowList = document.getElementById('flowList');
+  const topStocks = stocks.slice().sort((a, b) => b.weight - a.weight).slice(0, 10);
+  topStocks.forEach(s => {
+    const row = document.createElement('div');
+    row.className = 'flow-row';
+    row.innerHTML = `
+      <span class="left-part">
+        <span class="ticker glitch-text">${s.ticker}</span>
+        <span class="name">${s.name}</span>
+      </span>
+      <span class="right-part">
+        <span class="weight">${s.weight.toFixed(1)}%</span>
+        <span class="change ${cls(s.change)} glitch-text">${fmtPct(s.change)}</span>
+      </span>
+    `;
+    flowList.appendChild(row);
+  });
+  // 其他汇总
+  const othersRow = document.createElement('div');
+  othersRow.className = 'flow-row others';
+  othersRow.textContent = '其他 ' + (stocks.length - 10) + ' 只 · 合计权重 ' + (100 - topStocks.reduce((a,b) => a + b.weight, 0)).toFixed(1) + '%';
+  flowList.appendChild(othersRow);
+
+  // 领涨/领跌
+  const sorted = stocks.slice().sort((a, b) => b.change - a.change);
+  const top5 = sorted.slice(0, 5);
+  const bottom5 = sorted.slice(-5).reverse();
+  const leaderGrid = document.getElementById('leaderGrid');
+  const col1 = document.createElement('div');
+  col1.className = 'leader-col';
+  col1.innerHTML = '<div class="col-title" style="color:var(--color-rise);">▲ 领涨</div>';
+  top5.forEach(s => {
+    const item = document.createElement('div');
+    item.className = 'leader-item';
+    item.innerHTML = `<span class="glitch-text">${s.ticker}</span><span class="val glitch-text" style="color:var(--color-rise);">${fmtPct(s.change)}</span>`;
+    col1.appendChild(item);
+  });
+  const col2 = document.createElement('div');
+  col2.className = 'leader-col';
+  col2.innerHTML = '<div class="col-title" style="color:var(--color-fall);">▼ 领跌</div>';
+  bottom5.forEach(s => {
+    const item = document.createElement('div');
+    item.className = 'leader-item';
+    item.innerHTML = `<span class="glitch-text">${s.ticker}</span><span class="val glitch-text" style="color:var(--color-fall);">${fmtPct(s.change)}</span>`;
+    col2.appendChild(item);
+  });
+  leaderGrid.appendChild(col1);
+  leaderGrid.appendChild(col2);
+
+  // 30日趋势
+  if (history.length >= 2) {
+    const change30 = (history[history.length-1] - history[0]) / history[0] * 100;
+    const high = Math.max(...history);
+    const low = Math.min(...history);
+    const latest = history[history.length-1];
+    document.getElementById('trendChange').textContent = fmtPct(change30);
+    document.getElementById('trendChange').className = 'value glitch-text ' + cls(change30);
+    document.getElementById('trendHigh').textContent = high.toLocaleString();
+    document.getElementById('trendLow').textContent = low.toLocaleString();
+    document.getElementById('trendLatest').textContent = latest.toLocaleString();
+
+    // 近5日
+    const mini = document.getElementById('miniPrices');
+    mini.innerHTML = '<span>近5日</span>';
+    const last5 = history.slice(-5);
+    last5.forEach((v, i) => {
+      const span = document.createElement('span');
+      span.className = 'glitch-text';
+      if (i === last5.length - 1) span.className += ' latest';
+      span.textContent = v.toLocaleString();
+      mini.appendChild(span);
+    });
+  }
+
+  // ==============================================================
+  // 滚动行情数据（从真实数据生成）
+  // ==============================================================
   function buildTickerHTML(data) {
     let html = '';
-    for (let rep=0; rep<2; rep++) {
-      data.forEach(item => {
-        const cls = item.up ? 'up' : 'down';
-        const arrow = item.up ? '▲' : '▼';
-        // ★ 关键修改：外层 span 加上 glitch-text 类
-        html += `<span class="glitch-text">${item.ticker} <span class="${cls}">${arrow} ${item.change}</span> <span style="color:var(--text-dim);">|</span></span>`;
+    const items = data.slice().sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
+    for (let rep = 0; rep < 2; rep++) {
+      items.forEach(item => {
+        const cls = item.change >= 0 ? 'up' : 'down';
+        const arrow = item.change >= 0 ? '▲' : '▼';
+        html += `<span class="glitch-text">${item.ticker} <span class="${cls}">${arrow} ${fmtPct(item.change)}</span> <span style="color:var(--text-dim);">|</span></span>`;
       });
     }
     return html;
   }
 
-  document.getElementById('tickerTopInner').innerHTML = buildTickerHTML(tickerData);
-  document.getElementById('tickerBottomTrack').innerHTML = buildTickerHTML(tickerData);
+  document.getElementById('tickerTopInner').innerHTML = buildTickerHTML(stocks);
+  document.getElementById('tickerBottomTrack').innerHTML = buildTickerHTML(stocks);
 
-  // 悬停暂停（保留，不影响 glitch）
+  // 悬停暂停
   const topTrack = document.querySelector('.sticky-top .track-inner');
   const bottomTrack = document.querySelector('.sticky-bottom .ticker-track');
   [topTrack, bottomTrack].forEach(track => {
@@ -821,7 +915,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   // ==============================================================
   // Glitch 引擎（含美元彩蛋 50%）
   // ==============================================================
-  // ★ 现在滚动条里的 .glitch-text 也会被选中
   const glitchElements = document.querySelectorAll('.glitch-text');
 
   function triggerGlitch(el) {
@@ -890,7 +983,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   }
   glitchStorm();
 
-  // 鼠标悬停触发（滚动条里的数字现在也会触发）
   glitchElements.forEach(el => {
     el.addEventListener('mouseenter', function() {
       triggerGlitch(this);
@@ -898,12 +990,12 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   });
 
   // ==============================================================
-  // 头部价格数字在「净值」和「NDX」之间切换（联动 glitch）
+  // 头部价格数字在「净值」和「NDX」之间切换
   // ==============================================================
   const stickyPrice = document.getElementById('stickyPrice');
   const stickyChange = document.getElementById('stickyChange');
   const stickyBadge = document.querySelector('.sticky-top .badge');
-  let priceValue = '19,842.50';
+  let priceValue = idx.price ? idx.price.toLocaleString() : '--';
   let showNDX = false;
   let switching = false;
 
@@ -938,7 +1030,70 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     switchPrice();
   }, 1800);
 
-  console.log('✦ 滚动条已加入 Glitch · 美元彩蛋 50% ✦');
+  // ==============================================================
+  // 导航（前一日/后一日/今天）
+  // ==============================================================
+  (function(){
+    const btnPrev = document.getElementById("btnPrev");
+    const btnNext = document.getElementById("btnNext");
+    const btnToday = document.getElementById("btnToday");
+    if (!btnPrev || !btnNext) return;
+
+    // 动态创建导航按钮（如果不存在）
+    const navBtns = document.querySelector('.meta');
+    if (navBtns && !document.getElementById('btnPrev')) {
+      const btnGroup = document.createElement('span');
+      btnGroup.style.display = 'flex';
+      btnGroup.style.gap = '0.5vw';
+      btnGroup.innerHTML = `
+        <button class="theme-toggle" id="btnPrev" disabled style="font-size:clamp(10px,1.2vw,14px);padding:0.1vh 0.6vw;">←</button>
+        <button class="theme-toggle" id="btnToday" style="display:none;font-size:clamp(10px,1.2vw,14px);padding:0.1vh 0.6vw;">今天</button>
+        <button class="theme-toggle" id="btnNext" disabled style="font-size:clamp(10px,1.2vw,14px);padding:0.1vh 0.6vw;">→</button>
+      `;
+      navBtns.appendChild(btnGroup);
+    }
+
+    const btnPrev2 = document.getElementById('btnPrev');
+    const btnNext2 = document.getElementById('btnNext');
+    const btnToday2 = document.getElementById('btnToday');
+    if (!btnPrev2 || !btnNext2) return;
+
+    const path = window.location.pathname;
+    const isHistory = path.includes("/history/");
+    let currentDate = DATA.date;
+    if (isHistory) {
+      const m = path.match(/history\/(\d{4}-\d{2}-\d{2})/);
+      if (m) currentDate = m[1];
+      if (btnToday2) {
+        btnToday2.style.display = "inline-block";
+        btnToday2.onclick = function() { window.location.href = "../index.html"; };
+      }
+    }
+
+    const idx2 = HISTORY_DATES.indexOf(currentDate);
+    if (idx2 === -1) return;
+
+    if (idx2 > 0) {
+      const prevDate = HISTORY_DATES[idx2 - 1];
+      btnPrev2.disabled = false;
+      btnPrev2.onclick = function() {
+        window.location.href = isHistory ? "./" + prevDate + ".html" : "./history/" + prevDate + ".html";
+      };
+    }
+    if (idx2 < HISTORY_DATES.length - 1) {
+      const nextDate = HISTORY_DATES[idx2 + 1];
+      btnNext2.disabled = false;
+      if (nextDate === DATA.date && isHistory) {
+        btnNext2.onclick = function() { window.location.href = "../index.html"; };
+      } else {
+        btnNext2.onclick = function() {
+          window.location.href = isHistory ? "./" + nextDate + ".html" : "./history/" + nextDate + ".html";
+        };
+      }
+    }
+  })();
+
+  console.log('✦ Glitch 风格 · 数据已注入 ✦');
 </script>
 </body>
 </html>
@@ -1005,7 +1160,7 @@ def generate_html(data, history_dates, is_history=False):
 
 def main():
     print("=" * 50)
-    print("NDX Dashboard 数据抓取 (Glitch 风格)")
+    print("NDX Dashboard 数据抓取 (Glitch 风格 - 动态数据)")
     print(f"开始时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 50)
 
