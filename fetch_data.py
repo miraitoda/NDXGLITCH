@@ -584,17 +584,28 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     .leader-item .val { font-weight:900; }
 
     .trend-stats {
-      display:flex; flex-wrap:wrap; gap:2vw 4vw;
-      background:var(--bg-card); padding:1.2vw 2vw; border-radius:8px;
-      margin:1.2vw 0; border:1px solid var(--border-color);
+      display:flex;
+      flex-wrap:wrap;
+      gap:1.2vw 3vw;  /* 减小间隙，防止换行 */
+      background:var(--bg-card);
+      padding:1.2vw 2vw;
+      border-radius:8px;
+      margin:1.2vw 0;
+      border:1px solid var(--border-color);
       transition:background 0.3s,border-color 0.3s;
     }
     .trend-item .label {
-      font-size:clamp(10px,1.2vw,14px); font-weight:700; color:var(--text-muted);
+      font-size:clamp(10px,1.2vw,14px);
+      font-weight:700;
+      color:var(--text-muted);
       letter-spacing:1px;
     }
     .trend-item .value {
-      font-size:clamp(32px,7vw,56px); font-weight:900; line-height:1.2; letter-spacing:-1px;
+      font-size:clamp(32px,7vw,56px);
+      font-weight:900;
+      line-height:1.2;
+      letter-spacing:-1px;
+      white-space:nowrap;  /* 强制不换行，三角形和数字在同一行 */
     }
     .mini-prices {
       display:flex; flex-wrap:wrap; gap:1vw;
@@ -635,6 +646,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       .flow-row .weight { min-width:6vw; }
       .flow-row .change { min-width:8vw; }
       .theme-toggle { font-size:12px; padding:0.1vh 2vw; }
+      .trend-stats { gap:1.5vw 2.5vw; }
+      .trend-item .value { font-size:clamp(26px,6vw,40px); }
     }
   </style>
 </head>
