@@ -857,7 +857,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   document.getElementById('kpiUp').textContent = idx.up;
   document.getElementById('kpiDown').textContent = idx.down;
   const trend30 = history.length >= 2 ? ((history[history.length-1] - history[0]) / history[0] * 100) : 0;
-  document.getElementById('kpiTrend').textContent = fmtPct(trend30);
+  document.getElementById('kpiTrend').textContent = (trend30 >= 0 ? "+" : "") + trend30.toFixed(2) + "%";
   document.getElementById('kpiTrend').className = 'number ' + cls(trend30) + ' glitch-text';
 
   // 涨跌分布
