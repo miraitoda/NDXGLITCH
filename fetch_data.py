@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 纳指100每日收盘 Dashboard 数据抓取脚本
-Glitch 风格 · 纯数字展示 · 动态数据注入 · 音效引擎 · 局部花屏
+Glitch 风格 · 纯数字展示 · 动态数据注入 · 音效引擎
 """
 
 import json
@@ -251,7 +251,7 @@ def build_mock_data():
 
 
 # =====================================================================
-# Glitch 风格 HTML 模板 — 动态数据注入版（含完整导航 + 音效 + 局部花屏）
+# Glitch 风格 HTML 模板 — 动态数据注入版（含完整导航 + 音效，无花屏）
 # =====================================================================
 HTML_TEMPLATE = r"""<!DOCTYPE html>
 <html lang="zh-CN">
@@ -443,7 +443,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       cursor:pointer; font-weight:700; transition:all 0.2s; font-family:inherit; line-height:1.5;
     }
     .theme-toggle:hover { background:var(--bg-card); border-color:var(--color-rise); color:var(--text-primary); }
-    /* 静音按钮 */
+    /* 静音按钮 — 纯汉字 */
     .mute-btn {
       background:none; border:1px solid var(--border-color); border-radius:40px;
       color:var(--text-secondary);
@@ -742,7 +742,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
         <button class="nav-btn" id="btnNext" disabled>→</button>
       </span>
       <button class="theme-toggle" id="themeToggle">日间</button>
-      <button class="mute-btn" id="muteBtn">🔊 音效</button>
+      <button class="mute-btn" id="muteBtn">音效</button>
     </div>
   </div>
 </div>
@@ -826,6 +826,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
   let audioCtx = null;
   let isMuted = false;
+  let audioReady = false;  // 标记音频是否已激活
 
   // 读取静音状态
   const muteState = localStorage.getItem('ndxMuted');
@@ -838,16 +839,56 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       audioCtx = new AudioCtx();
     }
     if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
+      audioCtx.resume().then(() => {
+        audioReady = true;
+        console.log('🎵 音频已激活');
+      }).catch(e => console.warn('音频激活失败', e));
+    } else {
+      audioReady = true;
     }
   }
 
+  // 页面加载后绑定一次点击事件，用于激活音频
+  function activateAudioOnFirstClick() {
+    if (audioReady) return;
+    const handler = function() {
+      initAudio();
+      // 播放一个极短提示音（可选）
+      if (!isMuted) {
+        try {
+          const now = audioCtx.currentTime;
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(800, now);
+          gain.gain.setValueAtTime(0.02, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.05);
+        } catch(e) {}
+      }
+      document.removeEventListener('click', handler);
+    };
+    document.addEventListener('click', handler);
+  }
+
+  // 播放故障音效
   function playGlitchSound(type) {
     if (isMuted) return;
-    try {
+    // 如果音频还没激活，尝试激活
+    if (!audioReady) {
       initAudio();
+      // 如果激活后仍然不可用，则放弃本次播放
+      if (!audioReady) return;
+    }
+    try {
       const now = audioCtx.currentTime;
-
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+        return;
+      }
       if (type === 'burst') {
         const bufferSize = audioCtx.sampleRate * 0.08;
         const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
@@ -865,7 +906,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
         source.start(now);
         source.stop(now + 0.08);
       }
-
       if (type === 'scratch') {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
@@ -880,7 +920,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
         osc.start(now);
         osc.stop(now + 0.06);
       }
-
       if (type === 'switch') {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
@@ -897,91 +936,29 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     } catch (e) {}
   }
 
-  // ==============================================================
-  // 局部花屏特效 (canvas 随机区域)
-  // ==============================================================
-  function screenGlitch() {
-    if (!isMuted) playGlitchSound('burst');
-    const canvas = document.createElement('canvas');
-    canvas.style.position = 'fixed';
-    canvas.style.top = '0';
-    canvas.style.left = '0';
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    canvas.style.zIndex = '9999';
-    canvas.style.pointerEvents = 'none';
-    canvas.style.mixBlendMode = 'difference';
-    canvas.style.opacity = '0.9';
-    document.body.appendChild(canvas);
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    const w = canvas.width, h = canvas.height;
-
-    // 只画一小块随机区域（约占屏幕 5%-15%）
-    const areaSize = 0.05 + Math.random() * 0.10; // 5%~15%
-    const blockW = Math.floor(w * Math.sqrt(areaSize) * (0.6 + Math.random() * 0.8));
-    const blockH = Math.floor(h * Math.sqrt(areaSize) * (0.6 + Math.random() * 0.8));
-    const startX = Math.floor(Math.random() * (w - blockW));
-    const startY = Math.floor(Math.random() * (h - blockH));
-
-    // 局部马赛克
-    const blockSize = Math.floor(Math.random() * 12 + 6);
-    for (let y = startY; y < startY + blockH; y += blockSize) {
-      for (let x = startX; x < startX + blockW; x += blockSize) {
-        const r = Math.floor(Math.random() * 256);
-        const g = Math.floor(Math.random() * 256);
-        const b = Math.floor(Math.random() * 256);
-        ctx.fillStyle = `rgb(${r},${g},${b})`;
-        ctx.fillRect(x, y, blockSize, blockSize);
-      }
-    }
-
-    // 在局部区域加一些白色噪点
-    const imageData = ctx.getImageData(startX, startY, blockW, blockH);
-    const data = imageData.data;
-    for (let i = 0; i < data.length; i += 4) {
-      if (Math.random() < 0.08) {
-        data[i] = 255;
-        data[i+1] = 255;
-        data[i+2] = 255;
-      }
-    }
-    ctx.putImageData(imageData, startX, startY);
-
-    // 淡出移除
-    setTimeout(() => {
-      canvas.style.transition = 'opacity 0.15s';
-      canvas.style.opacity = '0';
-      setTimeout(() => {
-        canvas.remove();
-      }, 180);
-    }, 180);
-  }
-
-  // ==============================================================
-  // 静音切换
-  // ==============================================================
+  // 静音切换（纯汉字）
   const muteBtn = document.getElementById('muteBtn');
   if (muteBtn) {
-    muteBtn.textContent = isMuted ? '🔇 静音' : '🔊 音效';
+    muteBtn.textContent = isMuted ? '静音' : '音效';
     muteBtn.addEventListener('click', function() {
       isMuted = !isMuted;
       localStorage.setItem('ndxMuted', isMuted ? 'true' : 'false');
-      muteBtn.textContent = isMuted ? '🔇 静音' : '🔊 音效';
+      muteBtn.textContent = isMuted ? '静音' : '音效';
       if (!isMuted) {
+        // 激活音频并播放一个提示音
         initAudio();
+        if (!audioReady) {
+          // 如果尚未激活，尝试用点击激活
+          audioReady = true;
+          // 直接播放一个短音
+        }
         playGlitchSound('switch');
       }
     });
   }
 
-  // 用户首次点击页面时激活音频上下文
-  document.addEventListener('click', function() {
-    if (!audioCtx) {
-      initAudio();
-    }
-  }, { once: true });
+  // 页面加载后绑定激活监听器
+  activateAudioOnFirstClick();
 
   // ==============================================================
   // 主题切换（自动跟随系统 + 手动覆盖）
@@ -1172,7 +1149,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   });
 
   // ==============================================================
-  // Glitch 引擎（含美元彩蛋 50% + 局部花屏 15%）
+  // Glitch 引擎（含美元彩蛋 50%）
   // ==============================================================
   const glitchElements = document.querySelectorAll('.glitch-text');
 
@@ -1233,10 +1210,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     for (let i=0; i<count; i++) {
       const el = glitchElements[Math.floor(Math.random() * glitchElements.length)];
       if (el) triggerGlitch(el);
-    }
-    // 局部花屏特效 - 15% 概率
-    if (Math.random() < 0.15) {
-      screenGlitch();
     }
     if (Math.random() < 0.5) {
       dollarEasterEgg();
@@ -1364,7 +1337,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     }
   })();
 
-  console.log('✦ Glitch 风格 · 音效已加载 · 局部花屏已启用 ✦');
+  console.log('✦ Glitch 风格 · 音效已加载 ✦');
 </script>
 </body>
 </html>
@@ -1433,7 +1406,7 @@ def generate_html(data, history_dates, is_history=False):
 
 def main():
     print("=" * 50)
-    print("NDX Dashboard 数据抓取 (Glitch 风格 · 音效 · 局部花屏)")
+    print("NDX Dashboard 数据抓取 (Glitch 风格 · 音效)")
     print(f"开始时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 50)
 
