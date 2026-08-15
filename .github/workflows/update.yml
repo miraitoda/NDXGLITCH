@@ -1,0 +1,49 @@
+name: Update NDX Dashboard
+
+on:
+  schedule:
+    - cron: "0 22 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install requests   # 确保 requests 已安装
+
+      # 关键：把 gh-pages 上的历史文件完整复制回来
+      - name: Restore history files
+        run: |
+          git clone --branch gh-pages --single-branch https://github.com/${{ github.repository }}.git /tmp/gh-pages || true
+          if [ -d /tmp/gh-pages/history ]; then
+            mkdir -p docs/history
+            cp -r /tmp/gh-pages/history/* docs/history/ || true
+            echo "已恢复 $(ls docs/history/ | wc -l) 个历史文件"
+          else
+            echo "gh-pages 上没有 history 目录"
+          fi
+        continue-on-error: true
+
+      - name: Generate Dashboard
+        run: python fetch_data.py
+        env:
+          SILICONFLOW_API_KEY: ${{ secrets.SILICONFLOW_API_KEY }}
+
+      - uses: peaceiris/actions-gh-pages@v4
+        if: github.ref == 'refs/heads/main'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+          publish_branch: gh-pages
+          keep_files: true
