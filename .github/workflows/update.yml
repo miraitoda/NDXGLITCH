@@ -20,9 +20,8 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install requests   # 确保 requests 已安装
+          pip install requests
 
-      # 关键：把 gh-pages 上的历史文件完整复制回来
       - name: Restore history files
         run: |
           git clone --branch gh-pages --single-branch https://github.com/${{ github.repository }}.git /tmp/gh-pages || true
@@ -37,8 +36,6 @@ jobs:
 
       - name: Generate Dashboard
         run: python fetch_data.py
-        env:
-          SILICONFLOW_API_KEY: ${{ secrets.SILICONFLOW_API_KEY }}
 
       - uses: peaceiris/actions-gh-pages@v4
         if: github.ref == 'refs/heads/main'
@@ -46,4 +43,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs
           publish_branch: gh-pages
-          keep_files: true
+          keep_files: false
