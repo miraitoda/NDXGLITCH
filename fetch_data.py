@@ -427,7 +427,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       color:var(--color-rise); background:var(--color-rise-bg);
       padding:0.2vh 1.2vw; border-radius:40px; border:1px solid var(--badge-border);
     }
-    /* 日期样式 */
     .sticky-date {
       font-size:clamp(12px,1.6vw,18px);
       color:var(--text-muted);
@@ -679,7 +678,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       <span class="price glitch-text" id="stickyPrice">--</span>
       <span class="change up glitch-text" id="stickyChange">--</span>
       <span class="badge glitch-text">已收盘</span>
-      <!-- ★ 新增：收盘日期 -->
       <span class="sticky-date glitch-text" id="stickyDate">--</span>
     </div>
     <div class="meta">
@@ -745,7 +743,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     </div>
   </div>
   <div style="text-align:center; color:var(--text-dim); font-size:10px; letter-spacing:2px; padding:3vw 0 1vw; border-top:1px solid var(--border-color); margin-top:2vw; font-weight:700; transition:color 0.3s,border-color 0.3s;">
-    数据来自 Yahoo Finance · 每日自动更新 · 仅供参考
+    数据来自 Yahoo Finance · 每日自动更新 · 仅供参考 · <span id="buildTime"></span>
   </div>
 </div>
 
@@ -794,7 +792,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   document.getElementById('stickyUp').textContent = idx.up;
   document.getElementById('stickyDown').textContent = idx.down;
   document.getElementById('stickyTrend').textContent = fmtPct(idx.change);
-  // ★ 显示收盘日期
   document.getElementById('stickyDate').textContent = DATA.date;
 
   // 主价格
@@ -908,6 +905,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       mini.appendChild(span);
     });
   }
+
+  // ==============================================================
+  // 构建时间
+  // ==============================================================
+  document.getElementById('buildTime').textContent = new Date().toLocaleString('zh-CN');
 
   // ==============================================================
   // 滚动行情数据（从真实数据生成）
@@ -1065,7 +1067,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     const btnToday = document.getElementById("btnToday");
     if (!btnPrev || !btnNext) return;
 
-    // 动态创建导航按钮（如果不存在）
     const navBtns = document.querySelector('.meta');
     if (navBtns && !document.getElementById('btnPrev')) {
       const btnGroup = document.createElement('span');
@@ -1124,3 +1125,96 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 </body>
 </html>
 """
+
+
+def get_existing_history_dates(output_dir="docs"):
+    import glob
+    import re
+    history_dir = os.path.join(output_dir, "history")
+    if not os.path.exists(history_dir):
+        return []
+    dates = []
+    for path in glob.glob(os.path.join(history_dir, "*.html")):
+        name = os.path.basename(path)
+        m = re.match(r"(\d{4}-\d{2}-\d{2})\.html", name)
+        if m:
+            dates.append(m.group(1))
+    dates.sort()
+    return dates
+
+
+def manage_history(data, output_dir="docs", keep_days=30):
+    import glob
+    import os
+    history_dir = os.path.join(output_dir, "history")
+    os.makedirs(history_dir, exist_ok=True)
+
+    date_str = data["date"]
+    history_file = os.path.join(history_dir, f"{date_str}.html")
+
+    history_dates = get_existing_history_dates(output_dir)
+    if date_str not in history_dates:
+        history_dates.append(date_str)
+    history_dates.sort()
+
+    html = generate_html(data, history_dates, is_history=True)
+
+    with open(history_file, "w", encoding="utf-8") as f:
+        f.write(html)
+    print(f"  历史快照已保存: {history_file}")
+
+    all_files = sorted(glob.glob(os.path.join(history_dir, "*.html")))
+    if len(all_files) > keep_days:
+        for old_file in all_files[:-keep_days]:
+            os.remove(old_file)
+            print(f"  清理旧历史: {os.path.basename(old_file)}")
+
+    return history_dates
+
+
+def generate_html(data, history_dates, is_history=False):
+    import json
+    # 注入构建时间到 data 中
+    data_with_time = data.copy()
+    data_with_time["build_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    data_json = json.dumps(data_with_time, ensure_ascii=False, separators=(",", ":"))
+    history_dates_json = json.dumps(history_dates, ensure_ascii=False)
+    is_history_str = "true" if is_history else "false"
+
+    html = HTML_TEMPLATE
+    html = html.replace("__DATA_JSON__", data_json)
+    html = html.replace("__HISTORY_DATES__", history_dates_json)
+    html = html.replace("__IS_HISTORY__", is_history_str)
+    return html
+
+
+def main():
+    print("=" * 50)
+    print("NDX Dashboard 数据抓取 (Glitch 风格 - 动态数据)")
+    print(f"开始时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print("=" * 50)
+
+    ensure_dir()
+
+    data = build_data()
+    print(f"\n数据日期: {data['date']}")
+    print(f"指数涨跌: {data['index']['change']}%")
+    print(f"成分股数: {data['index']['total']}")
+
+    print("\n[历史快照管理]")
+    history_dates = manage_history(data, OUTPUT_DIR, keep_days=30)
+    print(f"  历史日期: {history_dates}")
+
+    print("\n[生成主页面]")
+    html = generate_html(data, history_dates, is_history=False)
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        f.write(html)
+    print(f"  已写入: {OUTPUT_FILE}")
+
+    print("\n" + "=" * 50)
+    print("完成!")
+    print("=" * 50)
+
+
+if __name__ == "__main__":
+    main()
