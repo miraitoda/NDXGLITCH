@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  <title>NDX 数据流</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&family=Noto+Sans+SC:wght@500;700;900&display=swap" rel="stylesheet">
+  <style>
+    /* ===== 全局 CSS 变量（暗色默认） ===== */
+    :root {
+      --bg-body: #0b0b0b;
+      --bg-sticky: rgba(11, 11, 11, 0.92);
+      --bg-card: rgba(255,255,255,0.02);
+      --border-color: rgba(255,255,255,0.06);
+      --text-primary: #ffffff;
+      --text-secondary: #aaaaaa;
+      --text-muted: #666666;
+      --text-dim: #444444;
+      --color-rise: #0ff;
+      --color-fall: #f0f;
+      --color-rise-bg: rgba(0,255,255,0.1);
+      --color-fall-bg: rgba(255,0,255,0.1);
+      --glitch-color1: #0ff;
+      --glitch-color2: #f0f;
+      --shadow-rise: 0 0 30px rgba(0,255,255,0.2);
+      --shadow-fall: 0 0 30px rgba(255,0,255,0.2);
+      --badge-border: rgba(0,255,255,0.3);
+      --glow-rise: rgba(0, 255, 255, 0.25);
+      --glow-fall: rgba(255, 0, 255, 0.25);
+    }
+
+    /* ===== 日间模式 ===== */
+    html.light {
+      --bg-body: #f2f4f8;
+      --bg-sticky: rgba(255, 255, 255, 0.85);
+      --bg-card: rgba(0, 0, 0, 0.03);
+      --border-color: rgba(0, 0, 0, 0.08);
+      --text-primary: #0a0a0a;
+      --text-secondary: #2d2d2d;
+      --text-muted: #6b7280;
+      --text-dim: #9ca3af;
+      --color-rise: #0ea5e9;
+      --color-fall: #ec4899;
+      --color-rise-bg: rgba(14, 165, 233, 0.12);
+      --color-fall-bg: rgba(236, 72, 153, 0.12);
+      --glitch-color1: #0ea5e9;
+      --glitch-color2: #ec4899;
+      --shadow-rise: 0 0 25px rgba(14, 165, 233, 0.25);
+      --shadow-fall: 0 0 25px rgba(236, 72, 153, 0.25);
+      --badge-border: rgba(14, 165, 233, 0.3);
+      --glow-rise: rgba(14, 165, 233, 0.20);
+      --glow-fall: rgba(236, 72, 153, 0.20);
+    }
+
+    /* ===== 重置 ===== */
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background: var(--bg-body);
+      color: var(--text-primary);
+      font-family: 'Inter','Noto Sans SC',-apple-system,sans-serif;
+      font-weight:700;
+      padding-top:110px;
+      padding-bottom:60px;
+      padding-left:4vw;
+      padding-right:4vw;
+      min-height:100vh;
+      overflow-x:hidden;
+      transition:background 0.3s,color 0.3s;
+      position:relative;
+    }
+
+    /* ===== 背景光晕（无网格） ===== */
+    .bg-layers {
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      z-index:0;
+      overflow:hidden;
+    }
+    .hero-glow {
+      position:absolute;
+      top:-20%;
+      left:0;
+      right:0;
+      height:80%;
+      background:radial-gradient(ellipse at 50% 0%, var(--glow-rise) 0%, var(--glow-fall) 50%, transparent 80%);
+      transition:background 0.3s;
+      filter:blur(60px);
+      opacity:0.9;
+    }
+    .contour-texture {
+      position:absolute;
+      inset:0;
+    }
+    .contour-green {
+      position:absolute;
+      inset:-50%;
+      background:radial-gradient(ellipse 800px 500px at 20% 85%, var(--glow-rise) 0%, transparent 70%);
+      animation:drift-rise 25s ease-in-out infinite alternate;
+      filter:blur(80px);
+      opacity:0.8;
+    }
+    .contour-purple {
+      position:absolute;
+      inset:-50%;
+      background:radial-gradient(ellipse 750px 480px at 80% 75%, var(--glow-fall) 0%, transparent 65%);
+      animation:drift-fall 30s ease-in-out infinite alternate;
+      filter:blur(80px);
+      opacity:0.8;
+    }
+    @keyframes drift-rise {
+      0% { transform:translate(0,0) scale(1); }
+      33% { transform:translate(3%,-2%) scale(1.04); }
+      66% { transform:translate(-2%,3%) scale(0.96); }
+      100% { transform:translate(2%,2%) scale(1.02); }
+    }
+    @keyframes drift-fall {
+      0% { transform:translate(0,0) scale(1); }
+      33% { transform:translate(-3%,2%) scale(0.98); }
+      66% { transform:translate(2%,-3%) scale(1.06); }
+      100% { transform:translate(-2%,-2%) scale(1); }
+    }
+
+    .container { max-width:720px; margin:0 auto; position:relative; z-index:1; }
+
+    /* ===== 顶部 Sticky ===== */
+    .sticky-top {
+      position:fixed; top:0; left:0; right:0; z-index:100;
+      background:var(--bg-sticky);
+      backdrop-filter:blur(12px);
+      border-bottom:1px solid var(--border-color);
+      padding:0.6vh 4vw 0.8vh;
+      display:flex; flex-direction:column; gap:0.4vh;
+      transition:background 0.3s,border-color 0.3s;
+    }
+    .sticky-top .ticker-track-top {
+      overflow:hidden; white-space:nowrap; width:100%; padding:0.2vh 0; order:0;
+    }
+    .sticky-top .ticker-track-top .track-inner {
+      display:flex; gap:2.5vw;
+      animation:tickerScrollReverse 50s linear infinite;
+      width:max-content;
+      font-size:clamp(13px,2vw,18px); font-weight:700;
+    }
+    .sticky-top .ticker-track-top .track-inner span { display:inline-flex; align-items:center; gap:0.6vw; }
+    .sticky-top .ticker-track-top .track-inner .up { color:var(--color-rise); }
+    .sticky-top .ticker-track-top .track-inner .down { color:var(--color-fall); }
+    @keyframes tickerScrollReverse {
+      0% { transform:translateX(-50%); }
+      100% { transform:translateX(0); }
+    }
+    .sticky-top .top-row {
+      display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5vh 2vw; order:1;
+    }
+    .sticky-top .left { display:flex; align-items:baseline; gap:1.2vw; flex-wrap:wrap; }
+    .sticky-top .price {
+      font-size:clamp(22px,4.5vw,38px); font-weight:900; letter-spacing:-1px;
+      line-height:1.1; color:var(--text-primary); display:inline-block; white-space:nowrap;
+    }
+    .sticky-top .change { font-size:clamp(16px,2.8vw,24px); font-weight:900; }
+    .sticky-top .change.up { color:var(--color-rise); }
+    .sticky-top .change.down { color:var(--color-fall); }
+    .sticky-top .meta {
+      font-size:clamp(12px,1.8vw,16px); font-weight:700; color:var(--text-muted);
+      display:flex; gap:1.5vw; align-items:center;
+    }
+    .sticky-top .meta strong { color:var(--text-primary); font-weight:900; }
+    .sticky-top .badge {
+      font-size:11px; font-weight:800; letter-spacing:1px;
+      color:var(--color-rise); background:var(--color-rise-bg);
+      padding:0.2vh 1.2vw; border-radius:40px; border:1px solid var(--badge-border);
+    }
+    .theme-toggle {
+      background:none; border:1px solid var(--border-color); border-radius:40px;
+      color:var(--text-secondary);
+      font-size:clamp(12px,1.6vw,18px); padding:0.2vh 1vw;
+      cursor:pointer; font-weight:700; transition:all 0.2s; font-family:inherit; line-height:1.5;
+    }
+    .theme-toggle:hover { background:var(--bg-card); border-color:var(--color-rise); color:var(--text-primary); }
+
+    /* ===== 底部 Sticky ===== */
+    .sticky-bottom {
+      position:fixed; bottom:0; left:0; right:0; z-index:100;
+      background:var(--bg-sticky);
+      backdrop-filter:blur(12px);
+      border-top:1px solid var(--border-color);
+      padding:1vh 4vw;
+      overflow:hidden; white-space:nowrap;
+      transition:background 0.3s,border-color 0.3s;
+    }
+    .sticky-bottom .ticker-track {
+      display:flex; gap:2.5vw;
+      animation:tickerScroll 60s linear infinite;
+      width:max-content;
+      font-size:clamp(14px,2.2vw,20px); font-weight:700;
+    }
+    .sticky-bottom .ticker-track span { display:inline-flex; align-items:center; gap:0.6vw; }
+    .sticky-bottom .ticker-track .up { color:var(--color-rise); }
+    .sticky-bottom .ticker-track .down { color:var(--color-fall); }
+    @keyframes tickerScroll {
+      0% { transform:translateX(0); }
+      100% { transform:translateX(-50%); }
+    }
+
+    /* ===== 其他元素 ===== */
+    .block {
+      opacity:0;
+      transform:translateY(30px) scale(0.98);
+      animation:slideUp 0.7s cubic-bezier(0.16,1,0.3,1) forwards;
+    }
+    .block:nth-child(2) { animation-delay:0.08s; }
+    .block:nth-child(3) { animation-delay:0.16s; }
+    .block:nth-child(4) { animation-delay:0.24s; }
+    .block:nth-child(5) { animation-delay:0.32s; }
+    .block:nth-child(6) { animation-delay:0.40s; }
+    .block:nth-child(7) { animation-delay:0.48s; }
+    @keyframes slideUp {
+      0% { opacity:0; transform:translateY(30px) scale(0.98); }
+      100% { opacity:1; transform:translateY(0) scale(1); }
+    }
+
+    .divider {
+      border:none; height:1px;
+      background:linear-gradient(90deg, transparent, var(--border-color), transparent);
+      margin:2vw 0; transition:background 0.3s;
+    }
+    .price-block { padding:1vw 0 0.5vw; }
+    .price-main {
+      font-size:clamp(80px,22vw,160px); font-weight:900; letter-spacing:-4px;
+      line-height:0.9; display:inline-block; color:var(--text-primary);
+    }
+    .price-change {
+      font-size:clamp(32px,8vw,64px); font-weight:900; margin-left:12px;
+      display:inline-block; letter-spacing:-1px;
+    }
+    .price-change.up { color:var(--color-rise); }
+    .price-change.down { color:var(--color-fall); }
+    .price-sub {
+      font-size:clamp(14px,2.2vw,18px); font-weight:600; color:var(--text-muted);
+      letter-spacing:1px; margin-top:0.2vw; display:flex; flex-wrap:wrap; gap:2vw;
+    }
+    .price-sub strong { color:var(--text-primary); font-weight:800; }
+
+    .kpi-grid {
+      display:grid; grid-template-columns:repeat(3,1fr); gap:0.8vw; margin:2vw 0;
+    }
+    .kpi-item {
+      background:var(--bg-card); padding:1.2vw 0.5vw; text-align:center; border-radius:4px;
+      transition:background 0.3s;
+    }
+    .kpi-item .label {
+      font-size:clamp(10px,1.4vw,14px); font-weight:700; color:var(--text-muted);
+      letter-spacing:2px; text-transform:uppercase;
+    }
+    .kpi-item .number {
+      font-size:clamp(40px,10vw,80px); font-weight:900; line-height:1; letter-spacing:-2px;
+    }
+    .kpi-item .number.up { color:var(--color-rise); }
+    .kpi-item .number.down { color:var(--color-fall); }
+    .kpi-item .sub { font-size:clamp(12px,1.4vw,16px); font-weight:600; color:var(--text-muted); }
+
+    .dist-grid {
+      display:flex; flex-wrap:wrap; gap:0.6vw 1.2vw; justify-content:flex-start; margin:1.2vw 0;
+    }
+    .dist-chip {
+      background:var(--bg-card); padding:0.4vw 1.4vw; border-radius:40px;
+      font-size:clamp(16px,2.4vw,26px); font-weight:800; letter-spacing:-0.5px;
+      border:1px solid var(--border-color);
+      transition:background 0.3s,border-color 0.3s;
+    }
+    .dist-chip .num { font-size:1.2em; margin-right:0.2vw; }
+    .dist-chip.rise { color:var(--color-rise); border-color:var(--color-rise-bg); }
+    .dist-chip.fall { color:var(--color-fall); border-color:var(--color-fall-bg); }
+    .dist-total {
+      font-size:clamp(14px,1.8vw,20px); font-weight:700; color:var(--text-muted);
+      margin-top:0.5vw; letter-spacing:1px;
+    }
+    .dist-total strong { font-weight:900; }
+
+    .flow-list {
+      display:flex; flex-direction:column; gap:0.4vw; margin:1.5vw 0;
+    }
+    .flow-row {
+      display:flex; align-items:baseline; padding:0.6vw 0.4vw;
+      border-bottom:1px solid var(--border-color);
+      font-size:clamp(16px,2.2vw,26px); font-weight:700; letter-spacing:-0.3px;
+      transition:border-color 0.3s;
+    }
+    .flow-row .left-part {
+      display:flex; align-items:baseline; gap:0.4vw; flex:1;
+    }
+    .flow-row .ticker { font-weight:900; color:var(--text-primary); }
+    .flow-row .name {
+      color:var(--text-secondary); font-weight:500; font-size:0.8em;
+    }
+    .flow-row .right-part {
+      display:flex; align-items:baseline; gap:2vw; flex-shrink:0;
+    }
+    .flow-row .weight {
+      color:var(--text-muted); font-weight:600; font-size:0.8em;
+      text-align:right; min-width:4.5vw;
+    }
+    .flow-row .change {
+      font-weight:900; text-align:right; min-width:6vw;
+    }
+    .flow-row .change.up { color:var(--color-rise); }
+    .flow-row .change.down { color:var(--color-fall); }
+    .flow-row.others {
+      color:var(--text-muted); font-size:0.8em; border-bottom:none;
+      padding-top:1vw; justify-content:center;
+    }
+
+    .leader-grid {
+      display:grid; grid-template-columns:1fr 1fr; gap:2vw; margin:1.5vw 0;
+    }
+    .leader-col .col-title {
+      font-size:clamp(12px,1.4vw,16px); font-weight:800; letter-spacing:2px;
+      color:var(--text-muted); border-bottom:2px solid var(--border-color);
+      padding-bottom:0.3vw; margin-bottom:0.6vw;
+      transition:border-color 0.3s;
+    }
+    .leader-item {
+      display:flex; justify-content:space-between; padding:0.3vw 0;
+      font-size:clamp(18px,2.6vw,32px); font-weight:800;
+      border-bottom:1px solid var(--border-color);
+    }
+    .leader-item .val { font-weight:900; }
+
+    .trend-stats {
+      display:flex; flex-wrap:wrap; gap:2vw 4vw;
+      background:var(--bg-card); padding:1.2vw 2vw; border-radius:8px;
+      margin:1.2vw 0; border:1px solid var(--border-color);
+      transition:background 0.3s,border-color 0.3s;
+    }
+    .trend-item .label {
+      font-size:clamp(10px,1.2vw,14px); font-weight:700; color:var(--text-muted);
+      letter-spacing:1px;
+    }
+    .trend-item .value {
+      font-size:clamp(32px,7vw,56px); font-weight:900; line-height:1.2; letter-spacing:-1px;
+    }
+    .mini-prices {
+      display:flex; flex-wrap:wrap; gap:1vw;
+      font-size:clamp(16px,2.2vw,26px); font-weight:700; color:var(--text-muted);
+      margin-top:0.5vw; letter-spacing:-0.3px;
+    }
+    .mini-prices .latest {
+      color:var(--text-primary); background:var(--bg-card); padding:0 0.5vw; border-radius:2px;
+    }
+
+    /* ===== Glitch ===== */
+    .glitch-text {
+      position:relative; display:inline-block; transition:color 0.1s; cursor:default;
+    }
+    .glitch-text.active {
+      animation:modernGlitch 0.25s ease;
+    }
+    @keyframes modernGlitch {
+      0% { transform:translate(-3px,2px); color:var(--glitch-color1); }
+      20% { transform:translate(4px,-3px); color:var(--glitch-color2); }
+      40% { transform:translate(-5px,1px); color:var(--glitch-color1); }
+      60% { transform:translate(3px,-2px); color:var(--glitch-color2); }
+      80% { transform:translate(-2px,3px); color:var(--glitch-color1); }
+      100% { transform:translate(0,0); color:inherit; }
+    }
+
+    /* ===== 响应式 ===== */
+    @media (max-width:600px) {
+      body { padding-top:100px; padding-bottom:50px; padding-left:3vw; padding-right:3vw; }
+      .sticky-top { padding:0.3vh 3vw 0.5vh; }
+      .sticky-top .ticker-track-top .track-inner { font-size:12px; gap:3vw; }
+      .sticky-top .meta { gap:1vw; }
+      .sticky-bottom .ticker-track { font-size:14px; gap:3vw; }
+      .kpi-grid { gap:1vw; }
+      .leader-grid { grid-template-columns:1fr; gap:4vw; }
+      .flow-row { font-size:16px; }
+      .flow-row .right-part { gap:2.5vw; }
+      .flow-row .weight { min-width:6vw; }
+      .flow-row .change { min-width:8vw; }
+      .theme-toggle { font-size:12px; padding:0.1vh 2vw; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== 背景光晕 ===== -->
+<div class="bg-layers">
+  <div class="hero-glow"></div>
+  <div class="contour-texture">
+    <div class="contour-green"></div>
+    <div class="contour-purple"></div>
+  </div>
+</div>
+
+<!-- ===== 顶部 Sticky ===== -->
+<div class="sticky-top" id="stickyTop">
+  <div class="ticker-track-top"><div class="track-inner" id="tickerTopInner"></div></div>
+  <div class="top-row">
+    <div class="left">
+      <span class="price glitch-text" id="stickyPrice">19,842.50</span>
+      <span class="change up glitch-text" id="stickyChange">▲ +1.23%</span>
+      <span class="badge glitch-text">已收盘</span>
+    </div>
+    <div class="meta">
+      <span>涨 <strong id="stickyUp" style="color:var(--color-rise);">63</strong></span>
+      <span>跌 <strong id="stickyDown" style="color:var(--color-fall);">35</strong></span>
+      <span style="color:var(--text-dim);">|</span>
+      <span style="color:var(--text-muted);">30日 <strong id="stickyTrend" style="color:var(--color-rise);">+5.67%</strong></span>
+      <button class="theme-toggle" id="themeToggle">日间</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 底部 Sticky ===== -->
+<div class="sticky-bottom"><div class="ticker-track" id="tickerBottomTrack"></div></div>
+
+<!-- ===== 主内容 ===== -->
+<div class="container">
+  <div class="block price-block">
+    <div>
+      <span class="price-main glitch-text" id="mainPrice">19,842.50</span>
+      <span class="price-change up glitch-text" id="mainChange">▲ +1.23%</span>
+    </div>
+    <div class="price-sub">
+      <span>前收 <strong>19,601.20</strong></span>
+      <span>高 <strong style="color:var(--color-rise);">19,920</strong></span>
+      <span>低 <strong style="color:var(--color-fall);">19,770</strong></span>
+      <span style="color:var(--color-rise);">●</span> 已收盘
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="block kpi-grid">
+    <div class="kpi-item"><div class="label">上涨</div><div class="number up glitch-text" id="kpiUp">63</div><div class="sub">家</div></div>
+    <div class="kpi-item"><div class="label">下跌</div><div class="number down glitch-text" id="kpiDown">35</div><div class="sub">家</div></div>
+    <div class="kpi-item"><div class="label">30日涨跌</div><div class="number up glitch-text" id="kpiTrend">+5.67%</div><div class="sub">区间</div></div>
+  </div>
+  <hr class="divider">
+  <div class="block">
+    <div class="dist-grid">
+      <span class="dist-chip fall"><span class="num fall glitch-text">3</span> &lt;-3%</span>
+      <span class="dist-chip fall"><span class="num fall glitch-text">7</span> -3~-2</span>
+      <span class="dist-chip fall"><span class="num fall glitch-text">12</span> -2~-1</span>
+      <span class="dist-chip fall"><span class="num fall glitch-text">13</span> -1~0</span>
+      <span class="dist-chip rise"><span class="num rise glitch-text">18</span> 0~1</span>
+      <span class="dist-chip rise"><span class="num rise glitch-text">20</span> 1~2</span>
+      <span class="dist-chip rise"><span class="num rise glitch-text">14</span> 2~3</span>
+      <span class="dist-chip rise"><span class="num rise glitch-text">11</span> &gt;3%</span>
+    </div>
+    <div class="dist-total">
+      上涨 <strong style="color:var(--color-rise);" class="glitch-text">63</strong>  · 下跌 <strong style="color:var(--color-fall);" class="glitch-text">35</strong>  · 平盘 <strong style="color:var(--text-muted);">2</strong>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="block flow-list">
+    <div class="flow-row"><span class="left-part"><span class="ticker glitch-text">AAPL</span><span class="name">苹果</span></span><span class="right-part"><span class="weight">12.1%</span><span class="change up glitch-text">+0.8%</span></span></div>
+    <div class="flow-row"><span class="left-part"><span class="ticker glitch-text">MSFT</span><span class="name">微软</span></span><span class="right-part"><span class="weight">10.5%</span><span class="change up glitch-text">+2.1%</span></span></div>
+    <div class="flow-row"><span class="left-part"><span class="ticker glitch-text">NVDA</span><span class="name">英伟达</span></span><span class="right-part"><span class="weight">8.9%</span><span class="change up glitch-text">+3.4%</span></span></div>
+    <div class="flow-row"><span class="left-part"><span class="ticker glitch-text">GOOGL</span><span class="name">谷歌</span></span><span class="right-part"><span class="weight">6.2%</span><span class="change down glitch-text">-0.4%</span></span></div>
+    <div class="flow-row"><span class="left-part"><span class="ticker glitch-text">AMZN</span><span class="name">亚马逊</span></span><span class="right-part"><span class="weight">5.8%</span><span class="change up glitch-text">+1.2%</span></span></div>
+    <div class="flow-row"><span class="left-part"><span class="ticker glitch-text">META</span><span class="name">Meta</span></span><span class="right-part"><span class="weight">4.5%</span><span class="change up glitch-text">+2.0%</span></span></div>
+    <div class="flow-row"><span class="left-part"><span class="ticker glitch-text">AVGO</span><span class="name">博通</span></span><span class="right-part"><span class="weight">4.1%</span><span class="change up glitch-text">+1.7%</span></span></div>
+    <div class="flow-row"><span class="left-part"><span class="ticker glitch-text">TSLA</span><span class="name">特斯拉</span></span><span class="right-part"><span class="weight">3.7%</span><span class="change down glitch-text">-2.3%</span></span></div>
+    <div class="flow-row"><span class="left-part"><span class="ticker glitch-text">JPM</span><span class="name">摩根大通</span></span><span class="right-part"><span class="weight">2.9%</span><span class="change up glitch-text">+0.5%</span></span></div>
+    <div class="flow-row"><span class="left-part"><span class="ticker glitch-text">V</span><span class="name">Visa</span></span><span class="right-part"><span class="weight">2.6%</span><span class="change down glitch-text">-0.1%</span></span></div>
+    <div class="flow-row others">其他 90 只 · 合计权重 38.7%</div>
+  </div>
+  <hr class="divider">
+  <div class="block leader-grid">
+    <div class="leader-col"><div class="col-title" style="color:var(--color-rise);">▲ 领涨</div>
+      <div class="leader-item"><span class="glitch-text">NVDA</span><span class="val glitch-text" style="color:var(--color-rise);">+3.4%</span></div>
+      <div class="leader-item"><span class="glitch-text">MSFT</span><span class="val glitch-text" style="color:var(--color-rise);">+2.1%</span></div>
+      <div class="leader-item"><span class="glitch-text">META</span><span class="val glitch-text" style="color:var(--color-rise);">+2.0%</span></div>
+      <div class="leader-item"><span class="glitch-text">AVGO</span><span class="val glitch-text" style="color:var(--color-rise);">+1.7%</span></div>
+      <div class="leader-item"><span class="glitch-text">AMZN</span><span class="val glitch-text" style="color:var(--color-rise);">+1.2%</span></div>
+    </div>
+    <div class="leader-col"><div class="col-title" style="color:var(--color-fall);">▼ 领跌</div>
+      <div class="leader-item"><span class="glitch-text">TSLA</span><span class="val glitch-text" style="color:var(--color-fall);">-2.3%</span></div>
+      <div class="leader-item"><span class="glitch-text">NFLX</span><span class="val glitch-text" style="color:var(--color-fall);">-1.9%</span></div>
+      <div class="leader-item"><span class="glitch-text">AMD</span><span class="val glitch-text" style="color:var(--color-fall);">-1.5%</span></div>
+      <div class="leader-item"><span class="glitch-text">INTC</span><span class="val glitch-text" style="color:var(--color-fall);">-1.1%</span></div>
+      <div class="leader-item"><span class="glitch-text">PYPL</span><span class="val glitch-text" style="color:var(--color-fall);">-0.8%</span></div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="block">
+    <div class="trend-stats">
+      <div class="trend-item"><div class="label">区间涨跌</div><div class="value glitch-text" style="color:var(--color-rise);">+5.67%</div></div>
+      <div class="trend-item"><div class="label">最高</div><div class="value glitch-text" style="color:var(--color-rise);">19,920</div></div>
+      <div class="trend-item"><div class="label">最低</div><div class="value glitch-text" style="color:var(--color-fall);">18,770</div></div>
+      <div class="trend-item"><div class="label">最新</div><div class="value glitch-text" style="color:var(--text-primary);">19,842</div></div>
+    </div>
+    <div class="mini-prices">
+      <span>近5日</span>
+      <span class="glitch-text">19,610</span>
+      <span class="glitch-text">19,720</span>
+      <span class="glitch-text" style="color:var(--color-rise);">19,840</span>
+      <span class="glitch-text" style="color:var(--color-rise);">19,900</span>
+      <span class="latest glitch-text">19,842</span>
+    </div>
+  </div>
+  <div style="text-align:center; color:var(--text-dim); font-size:10px; letter-spacing:2px; padding:3vw 0 1vw; border-top:1px solid var(--border-color); margin-top:2vw; font-weight:700; transition:color 0.3s,border-color 0.3s;">
+    <span style="color:var(--color-rise);">✦</span> 数据模拟 · 光晕全开 · 美元彩蛋 50% <span style="color:var(--color-fall);">✦</span>
+  </div>
+</div>
+
+<script>
+  // ==============================================================
+  // 主题切换
+  // ==============================================================
+  const toggleBtn = document.getElementById('themeToggle');
+  const htmlEl = document.documentElement;
+  const storedTheme = localStorage.getItem('ndxTheme');
+  if (storedTheme === 'light') {
+    htmlEl.classList.add('light');
+    toggleBtn.textContent = '夜间';
+  } else {
+    toggleBtn.textContent = '日间';
+  }
+  toggleBtn.addEventListener('click', () => {
+    htmlEl.classList.toggle('light');
+    const isLight = htmlEl.classList.contains('light');
+    localStorage.setItem('ndxTheme', isLight ? 'light' : 'dark');
+    toggleBtn.textContent = isLight ? '夜间' : '日间';
+  });
+
+  // ==============================================================
+  // 滚动行情数据（★ 加了 glitch-text 类，让滚动条参与 Glitch）
+  // ==============================================================
+  const tickerData = [
+    { ticker:'AAPL', change:'+0.8%', up:true },
+    { ticker:'MSFT', change:'+2.1%', up:true },
+    { ticker:'NVDA', change:'+3.4%', up:true },
+    { ticker:'GOOGL', change:'-0.4%', up:false },
+    { ticker:'AMZN', change:'+1.2%', up:true },
+    { ticker:'META', change:'+2.0%', up:true },
+    { ticker:'TSLA', change:'-2.3%', up:false },
+    { ticker:'NFLX', change:'-1.9%', up:false },
+    { ticker:'AVGO', change:'+1.7%', up:true },
+    { ticker:'AMD', change:'-1.5%', up:false },
+    { ticker:'INTC', change:'-1.1%', up:false },
+    { ticker:'JPM', change:'+0.5%', up:true }
+  ];
+
+  function buildTickerHTML(data) {
+    let html = '';
+    for (let rep=0; rep<2; rep++) {
+      data.forEach(item => {
+        const cls = item.up ? 'up' : 'down';
+        const arrow = item.up ? '▲' : '▼';
+        // ★ 关键修改：外层 span 加上 glitch-text 类
+        html += `<span class="glitch-text">${item.ticker} <span class="${cls}">${arrow} ${item.change}</span> <span style="color:var(--text-dim);">|</span></span>`;
+      });
+    }
+    return html;
+  }
+
+  document.getElementById('tickerTopInner').innerHTML = buildTickerHTML(tickerData);
+  document.getElementById('tickerBottomTrack').innerHTML = buildTickerHTML(tickerData);
+
+  // 悬停暂停（保留，不影响 glitch）
+  const topTrack = document.querySelector('.sticky-top .track-inner');
+  const bottomTrack = document.querySelector('.sticky-bottom .ticker-track');
+  [topTrack, bottomTrack].forEach(track => {
+    if (track) {
+      track.addEventListener('mouseenter', () => { track.style.animationPlayState = 'paused'; });
+      track.addEventListener('mouseleave', () => { track.style.animationPlayState = 'running'; });
+    }
+  });
+
+  // ==============================================================
+  // Glitch 引擎（含美元彩蛋 50%）
+  // ==============================================================
+  // ★ 现在滚动条里的 .glitch-text 也会被选中
+  const glitchElements = document.querySelectorAll('.glitch-text');
+
+  function triggerGlitch(el) {
+    if (!el) return;
+    el.classList.remove('active');
+    void el.offsetWidth;
+    el.classList.add('active');
+    setTimeout(() => el.classList.remove('active'), 300);
+  }
+
+  const originalTexts = new Map();
+
+  function dollarEasterEgg() {
+    const elements = Array.from(glitchElements).filter(el => el.textContent.trim().length > 0);
+    if (elements.length === 0) return;
+    const el = elements[Math.floor(Math.random() * elements.length)];
+    if (el.id === 'stickyPrice' || el.id === 'mainPrice') {
+      const others = elements.filter(e => e.id !== 'stickyPrice' && e.id !== 'mainPrice');
+      if (others.length === 0) return;
+      const target = others[Math.floor(Math.random() * others.length)];
+      if (!target) return;
+      if (!originalTexts.has(target)) {
+        originalTexts.set(target, target.textContent);
+      }
+      target.textContent = '$';
+      target.style.color = 'var(--color-rise)';
+      triggerGlitch(target);
+      setTimeout(() => {
+        target.textContent = originalTexts.get(target) || '';
+        target.style.color = '';
+        originalTexts.delete(target);
+      }, 400);
+    } else {
+      if (!originalTexts.has(el)) {
+        originalTexts.set(el, el.textContent);
+      }
+      el.textContent = '$';
+      el.style.color = 'var(--color-rise)';
+      triggerGlitch(el);
+      setTimeout(() => {
+        el.textContent = originalTexts.get(el) || '';
+        el.style.color = '';
+        originalTexts.delete(el);
+      }, 400);
+    }
+  }
+
+  setTimeout(() => {
+    glitchElements.forEach(el => triggerGlitch(el));
+  }, 400);
+
+  function glitchStorm() {
+    const count = Math.floor(Math.random() * 4) + 1;
+    for (let i=0; i<count; i++) {
+      const el = glitchElements[Math.floor(Math.random() * glitchElements.length)];
+      if (el) triggerGlitch(el);
+    }
+    if (Math.random() < 0.5) {
+      dollarEasterEgg();
+    }
+    if (Math.random() > 0.5) {
+      const stickyPrice = document.getElementById('stickyPrice');
+      if (stickyPrice) triggerGlitch(stickyPrice);
+    }
+    setTimeout(glitchStorm, 150 + Math.random() * 500);
+  }
+  glitchStorm();
+
+  // 鼠标悬停触发（滚动条里的数字现在也会触发）
+  glitchElements.forEach(el => {
+    el.addEventListener('mouseenter', function() {
+      triggerGlitch(this);
+    });
+  });
+
+  // ==============================================================
+  // 头部价格数字在「净值」和「NDX」之间切换（联动 glitch）
+  // ==============================================================
+  const stickyPrice = document.getElementById('stickyPrice');
+  const stickyChange = document.getElementById('stickyChange');
+  const stickyBadge = document.querySelector('.sticky-top .badge');
+  let priceValue = '19,842.50';
+  let showNDX = false;
+  let switching = false;
+
+  function switchPrice() {
+    if (switching || !stickyPrice) return;
+    switching = true;
+
+    triggerGlitch(stickyPrice);
+    if (stickyChange) {
+      setTimeout(() => triggerGlitch(stickyChange), 50);
+    }
+    if (stickyBadge) {
+      setTimeout(() => triggerGlitch(stickyBadge), 100);
+    }
+
+    setTimeout(() => {
+      if (showNDX) {
+        stickyPrice.textContent = priceValue;
+      } else {
+        stickyPrice.textContent = 'NDX';
+      }
+      showNDX = !showNDX;
+      switching = false;
+    }, 150);
+  }
+
+  setInterval(() => {
+    switchPrice();
+  }, 2800 + Math.random() * 1200);
+
+  setTimeout(() => {
+    switchPrice();
+  }, 1800);
+
+  console.log('✦ 滚动条已加入 Glitch · 美元彩蛋 50% ✦');
+</script>
+</body>
+</html>
