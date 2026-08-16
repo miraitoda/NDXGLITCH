@@ -7,6 +7,7 @@
 - 不开盘的日期自动跳过
 - 每个成功日期保留30日走势历史
 - 与 fetch_data.py 保持完全一致的模板和逻辑（无 AI 总结）
+- 配色系统与 fetch_data.py 同步（24 套赛博朋克主题）
 """
 
 import os
@@ -23,6 +24,9 @@ from ndx_components import STOCKS
 from fetch_data import (
     generate_html,
     ensure_dir,
+    COLOR_PALETTES,
+    get_theme_index,
+    build_theme_css,
 )
 
 OUTPUT_DIR = "docs"
@@ -245,6 +249,11 @@ def build_data_for_date(date_str, raw_data, ndx_hist):
         "change": round(oc, 2)
     }]
 
+    # ========== 新增：根据日期选择配色主题 ==========
+    theme_idx = get_theme_index(date_str)
+    palette = COLOR_PALETTES[theme_idx]
+    theme_css = build_theme_css(palette)
+
     result = {
         "index": index_info,
         "stocks": stocks,
@@ -253,9 +262,11 @@ def build_data_for_date(date_str, raw_data, ndx_hist):
         "bins": {"labels": labels, "counts": counts},
         "history": history,
         "date": date_str,
+        "theme_css": theme_css,       # 注入完整 CSS
+        "theme_idx": theme_idx,       # 调试用
     }
 
-    print(f"  ✓ 成功构建 {len(stocks)} 只个股数据")
+    print(f"  ✓ 成功构建 {len(stocks)} 只个股数据 (主题 #{theme_idx+1})")
     return result
 
 
