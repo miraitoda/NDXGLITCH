@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 纳指100每日收盘 Dashboard 数据抓取脚本
-Glitch 风格 · 赛博朋克 24 色 · 动态数据注入 · 音效引擎
+赛博朋克 24 色 · 动态数据注入 · 音效引擎 · 历史快照
 """
 
 import json
@@ -16,6 +16,7 @@ import colorsys
 
 import yfinance as yf
 
+# 假设 ndx_components.py 中定义了 STOCKS 列表
 from ndx_components import STOCKS
 
 OUTPUT_DIR = "docs"
@@ -23,7 +24,7 @@ OUTPUT_FILE = os.path.join(OUTPUT_DIR, "index.html")
 
 
 # =====================================================================
-# 24 套赛博朋克配色（暗色·涨/跌色）
+# 24 套赛博朋克配色（涨/跌色）
 # 完全避开 #0ff / #f0f 轴
 # =====================================================================
 COLOR_PALETTES = [
@@ -96,25 +97,19 @@ def build_theme_css(palette, light_factor=1.4):
     """
     rise_dark = palette["rise"]
     fall_dark = palette["fall"]
-    # 日间版本：调亮并略微降低饱和度（可选）
+    # 日间版本：调亮
     rise_light = adjust_brightness(rise_dark, light_factor)
     fall_light = adjust_brightness(fall_dark, light_factor)
 
-    # 生成半透明、阴影等辅助值
-    def gen_vars(rise, fall, mode):
-        # 背景色（半透明）
+    def gen_vars(rise, fall):
         rise_bg = hex_to_rgba(rise, 0.12)
         fall_bg = hex_to_rgba(fall, 0.12)
-        # Glitch 颜色
         glitch1 = rise
         glitch2 = fall
-        # 阴影
         shadow_rise = f"0 0 30px {hex_to_rgba(rise, 0.25)}"
         shadow_fall = f"0 0 30px {hex_to_rgba(fall, 0.25)}"
-        # 光晕
         glow_rise = hex_to_rgba(rise, 0.25)
         glow_fall = hex_to_rgba(fall, 0.25)
-        # 徽章边框
         badge_border = hex_to_rgba(rise, 0.3)
         return {
             "rise": rise,
@@ -130,10 +125,9 @@ def build_theme_css(palette, light_factor=1.4):
             "badge_border": badge_border,
         }
 
-    dark_vars = gen_vars(rise_dark, fall_dark, "dark")
-    light_vars = gen_vars(rise_light, fall_light, "light")
+    dark_vars = gen_vars(rise_dark, fall_dark)
+    light_vars = gen_vars(rise_light, fall_light)
 
-    # 拼接 CSS
     css = ":root {\n"
     for k, v in dark_vars.items():
         css += f"  --color-{k}: {v};\n"
@@ -395,7 +389,7 @@ def build_mock_data():
 
 
 # =====================================================================
-# HTML 模板（原模板只保留结构和 CSS 框架，变量由 Python 注入）
+# HTML 模板（已修复基础变量）
 # =====================================================================
 HTML_TEMPLATE = r"""<!DOCTYPE html>
 <html lang="zh-CN">
@@ -407,7 +401,29 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&family=Noto+Sans+SC:wght@500;700;900&display=swap" rel="stylesheet">
   <style>
-    /* ===== 全局 CSS 变量（由 Python 注入主题色） ===== */
+    /* ===== 基础变量（固定背景、文字、边框） ===== */
+    :root {
+      --bg-body: #0b0b0b;
+      --bg-sticky: rgba(11, 11, 11, 0.92);
+      --bg-card: rgba(255,255,255,0.02);
+      --border-color: rgba(255,255,255,0.06);
+      --text-primary: #ffffff;
+      --text-secondary: #aaaaaa;
+      --text-muted: #666666;
+      --text-dim: #444444;
+    }
+    html.light {
+      --bg-body: #f2f4f8;
+      --bg-sticky: rgba(255, 255, 255, 0.85);
+      --bg-card: rgba(0, 0, 0, 0.03);
+      --border-color: rgba(0, 0, 0, 0.08);
+      --text-primary: #0a0a0a;
+      --text-secondary: #2d2d2d;
+      --text-muted: #6b7280;
+      --text-dim: #9ca3af;
+    }
+
+    /* ===== 主题色（由 Python 动态注入涨跌色） ===== */
     /* THEME_CSS_PLACEHOLDER */
 
     /* ===== 重置 ===== */
