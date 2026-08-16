@@ -19,9 +19,11 @@ jobs:
           cache: "pip"
       - name: 安装依赖
         run: |
-          pip install requests beautifulsoup4
+          pip install requests
       - name: 更新成分股
         run: python update_components.py
+        env:
+          ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY }}
       - name: 提交变更
         run: |
           git config user.name "github-actions[bot]"
