@@ -1,8 +1,13 @@
-name: 更新成分股
+```yaml
+name: 更新纳指100成分股
 
 on:
   schedule:
-    - cron: "0 0 * * 0"   # 每周日 UTC 0:00
+    # 每个工作日 UTC 00:30 运行
+    # = 北京时间 08:30
+    - cron: "30 0 * * 1-5"
+
+  # 允许在 GitHub Actions 页面手动运行
   workflow_dispatch:
 
 permissions:
@@ -10,28 +15,83 @@ permissions:
 
 jobs:
   update-components:
+
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+
+      # ==================================================
+      # 1. 获取仓库代码
+      # ==================================================
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # ==================================================
+      # 2. 设置 Python
+      # ==================================================
+      - name: 设置 Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: "pip"
+
+      # ==================================================
+      # 3. 安装依赖
+      # ==================================================
       - name: 安装依赖
         run: |
+          python -m pip install --upgrade pip
           pip install requests
-      - name: 更新成分股
-        run: python update_components.py
-        env:
-          ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY }}
+
+      # ==================================================
+      # 4. 更新 Nasdaq-100
+      # ==================================================
+      - name: 更新纳指100成分股
+        run: |
+          python update_ndx.py
+
+      # ==================================================
+      # 5. 检查更新结果
+      # ==================================================
+      - name: 检查文件
+        run: |
+          echo "=========================================="
+          echo "检查 ndx_components.py"
+          echo "=========================================="
+
+          if [ ! -f ndx_components.py ]; then
+            echo "❌ ndx_components.py 不存在"
+            exit 1
+          fi
+
+          COUNT=$(grep -c '^    ("' ndx_components.py || true)
+
+          echo "当前股票数量: $COUNT"
+
+          if [ "$COUNT" -lt 95 ] || [ "$COUNT" -gt 110 ]; then
+            echo "❌ 股票数量异常: $COUNT"
+            exit 1
+          fi
+
+          echo "✅ 文件检查通过"
+
+      # ==================================================
+      # 6. 提交变更
+      # ==================================================
       - name: 提交变更
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           git add ndx_components.py
+
           if git diff --staged --quiet; then
-            echo "✅ 无变化，无需提交"
+            echo "✅ 数据没有变化，无需提交"
           else
-            git commit -m "chore: 自动更新成分股权重 $(date +'%Y-%m-%d')"
+            git commit -m "chore: 自动更新纳指100成分股 $(date +'%Y-%m-%d')"
             git push
+
+            echo "✅ 更新已提交"
           fi
+```
