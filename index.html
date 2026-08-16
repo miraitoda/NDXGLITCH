@@ -378,6 +378,7 @@
       display:flex; justify-content:space-between; padding:0.3vw 0;
       font-size:clamp(18px,2.6vw,32px); font-weight:800;
       border-bottom:1px solid var(--border-color);
+      cursor:default;
     }
     .leader-item .val { font-weight:900; }
 
@@ -553,7 +554,7 @@
   // ==============================================================
   // 数据注入
   // ==============================================================
-  const DATA = {"index":{"price":30046.14,"prev_close":30084.5,"change":-0.13,"up":50,"down":51,"flat":1,"total":102},"stocks":[{"ticker":"NVDA","name":"NVIDIA Corporation Common Stock","sector":"科技","weight":12.96,"change":-0.06},{"ticker":"AAPL","name":"Apple Inc. Common Stock","sector":"科技","weight":10.61,"change":0.22},{"ticker":"MSFT","name":"Microsoft Corporation Common Stock","sector":"科技","weight":8.74,"change":-0.3},{"ticker":"AMZN","name":"Amazon.com, Inc. Common Stock","sector":"可选消费","weight":6.73,"change":-0.94},{"ticker":"GOOGL","name":"Alphabet Inc. Class A Common Stock","sector":"通信服务","weight":5.18,"change":-0.13},{"ticker":"GOOG","name":"Alphabet Inc. Class C Capital Stock","sector":"通信服务","weight":4.84,"change":-0.12},{"ticker":"AVGO","name":"Broadcom Inc. Common Stock","sector":"科技","weight":4.44,"change":-5.94},{"ticker":"SPCX","name":"Space Exploration Technologies Corp. Class A Common Stock","sector":"Industrials","weight":4.39,"change":-0.91},{"ticker":"META","name":"Meta Platforms, Inc. Class A Common Stock","sector":"通信服务","weight":3.57,"change":-0.86},{"ticker":"TSLA","name":"Tesla, Inc. Common Stock","sector":"可选消费","weight":3.21,"change":0.68},{"ticker":"MU","name":"Micron Technology, Inc. Common Stock","sector":"科技","weight":2.61,"change":2.3},{"ticker":"WMT","name":"Walmart Inc. Common Stock","sector":"必需消费","weight":2.18,"change":-0.39},{"ticker":"AMD","name":"Advanced Micro Devices, Inc. Common Stock","sector":"科技","weight":2.0,"change":6.5},{"ticker":"ASML","name":"ASML Holding N.V. New York Registry Shares","sector":"科技","weight":1.68,"change":-0.21},{"ticker":"INTC","name":"Intel Corporation Common Stock","sector":"科技","weight":1.23,"change":-1.97},{"ticker":"CSCO","name":"Cisco Systems, Inc. Common Stock (DE)","sector":"科技","weight":1.05,"change":-1.58},{"ticker":"COST","name":"Costco Wholesale Corporation Common Stock","sector":"必需消费","weight":1.01,"change":-0.08},{"ticker":"LRCX","name":"Lam Research Corporation Common Stock","sector":"科技","weight":0.99,"change":-1.38},{"ticker":"PLTR","name":"Palantir Technologies Inc. Class A Common Stock","sector":"科技","weight":0.99,"change":-2.78},{"ticker":"AMAT","name":"Applied Materials, Inc. Common Stock","sector":"科技","weight":0.96,"change":-5.12},{"ticker":"NFLX","name":"Netflix, Inc. Common Stock","sector":"通信服务","weight":0.77,"change":-0.1},{"ticker":"PANW","name":"Palo Alto Networks, Inc. Common Stock","sector":"科技","weight":0.74,"change":-2.96},{"ticker":"ARM","name":"Arm Holdings plc American Depositary Shares","sector":"科技","weight":0.71,"change":0.28},{"ticker":"KLAC","name":"KLA Corporation Common Stock","sector":"科技","weight":0.63,"change":-2.7},{"ticker":"TXN","name":"Texas Instruments Incorporated Common Stock","sector":"科技","weight":0.61,"change":2.25},{"ticker":"SNDK","name":"Sandisk Corporation Common Stock","sector":"Technology","weight":0.57,"change":7.39},{"ticker":"AMGN","name":"Amgen Inc. Common Stock","sector":"医疗保健","weight":0.53,"change":-0.63},{"ticker":"CRWD","name":"CrowdStrike Holdings, Inc. Class A Common Stock","sector":"科技","weight":0.53,"change":-3.8},{"ticker":"LIN","name":"Linde plc Ordinary Shares","sector":"工业","weight":0.53,"change":0.95},{"ticker":"STX","name":"Seagate Technology Holdings PLC Ordinary Shares (Ireland)","sector":"科技","weight":0.52,"change":5.65},{"ticker":"MRVL","name":"Marvell Technology, Inc. Common Stock","sector":"科技","weight":0.47,"change":-0.07},{"ticker":"TMUS","name":"T-Mobile US, Inc. Common Stock","sector":"通信服务","weight":0.47,"change":-0.42},{"ticker":"SHOP","name":"Shopify Inc. Class A Subordinate Voting Shares","sector":"可选消费","weight":0.47,"change":-2.66},{"ticker":"PEP","name":"PepsiCo, Inc. Common Stock","sector":"必需消费","weight":0.46,"change":0.12},{"ticker":"ADI","name":"Analog Devices, Inc. Common Stock","sector":"科技","weight":0.45,"change":2.16},{"ticker":"WDC","name":"Western Digital Corporation Common Stock","sector":"科技","weight":0.42,"change":4.41},{"ticker":"QCOM","name":"QUALCOMM Incorporated Common Stock","sector":"科技","weight":0.41,"change":0.61},{"ticker":"GILD","name":"Gilead Sciences, Inc. Common Stock","sector":"医疗保健","weight":0.41,"change":0.16},{"ticker":"BKNG","name":"Booking Holdings Inc. Common Stock","sector":"可选消费","weight":0.38,"change":-0.6},{"ticker":"ISRG","name":"Intuitive Surgical, Inc. Common Stock","sector":"医疗保健","weight":0.33,"change":-1.68},{"ticker":"VRTX","name":"Vertex Pharmaceuticals Incorporated Common Stock","sector":"医疗保健","weight":0.3,"change":-2.07},{"ticker":"SBUX","name":"Starbucks Corporation Common Stock","sector":"可选消费","weight":0.29,"change":-0.22},{"ticker":"PDD","name":"PDD Holdings Inc. American Depositary Shares","sector":"可选消费","weight":0.29,"change":0.74},{"ticker":"FTNT","name":"Fortinet, Inc. Common Stock","sector":"科技","weight":0.28,"change":-3.28},{"ticker":"ADP","name":"Automatic Data Processing, Inc. Common Stock","sector":"科技","weight":0.26,"change":-1.18},{"ticker":"ABNB","name":"Airbnb, Inc. Class A Common Stock","sector":"可选消费","weight":0.26,"change":-0.58},{"ticker":"ADBE","name":"Adobe Inc. Common Stock","sector":"科技","weight":0.25,"change":-2.39},{"ticker":"APP","name":"Applovin Corporation Class A Common Stock","sector":"科技","weight":0.25,"change":0.89},{"ticker":"CEG","name":"Constellation Energy Corporation Common Stock","sector":"公用事业","weight":0.24,"change":1.39},{"ticker":"CMCSA","name":"Comcast Corporation Class A Common Stock","sector":"通信服务","weight":0.22,"change":0.0},{"ticker":"MNST","name":"Monster Beverage Corporation","sector":"必需消费","weight":0.22,"change":0.3},{"ticker":"INTU","name":"Intuit Inc. Common Stock","sector":"科技","weight":0.22,"change":-3.53},{"ticker":"CSX","name":"CSX Corporation Common Stock","sector":"工业","weight":0.22,"change":0.04},{"ticker":"MAR","name":"Marriott International Class A Common Stock","sector":"可选消费","weight":0.22,"change":1.19},{"ticker":"MELI","name":"MercadoLibre, Inc. Common Stock","sector":"可选消费","weight":0.22,"change":0.89},{"ticker":"DDOG","name":"Datadog, Inc. Class A Common Stock","sector":"科技","weight":0.22,"change":1.28},{"ticker":"DASH","name":"DoorDash, Inc. Class A Common Stock","sector":"可选消费","weight":0.22,"change":0.35},{"ticker":"CDNS","name":"Cadence Design Systems, Inc. Common Stock","sector":"科技","weight":0.21,"change":0.32},{"ticker":"REGN","name":"Regeneron Pharmaceuticals, Inc. Common Stock","sector":"医疗保健","weight":0.2,"change":-0.31},{"ticker":"LITE","name":"Lumentum Holdings Inc. Common Stock","sector":"Technology","weight":0.2,"change":5.19},{"ticker":"CTAS","name":"Cintas Corporation Common Stock","sector":"工业","weight":0.19,"change":-0.33},{"ticker":"ROST","name":"Ross Stores, Inc. Common Stock","sector":"可选消费","weight":0.19,"change":0.16},{"ticker":"SNPS","name":"Synopsys, Inc. Common Stock","sector":"科技","weight":0.19,"change":2.37},{"ticker":"MDLZ","name":"Mondelez International, Inc. Class A Common Stock","sector":"必需消费","weight":0.19,"change":0.13},{"ticker":"ORLY","name":"O'Reilly Automotive, Inc. Common Stock","sector":"可选消费","weight":0.18,"change":-1.65},{"ticker":"HON","name":"Honeywell International Inc. Common Stock","sector":"工业","weight":0.18,"change":0.29},{"ticker":"NBIS","name":"Nebius Group N.V. Class A Ordinary Shares","sector":"Communication Services","weight":0.18,"change":8.88},{"ticker":"WBD","name":"Warner Bros. Discovery, Inc. Series A Common Stock","sector":"通信服务","weight":0.17,"change":0.86},{"ticker":"PCAR","name":"PACCAR Inc. Common Stock","sector":"工业","weight":0.16,"change":0.05},{"ticker":"AEP","name":"American Electric Power Company, Inc. Common Stock","sector":"公用事业","weight":0.16,"change":0.18},{"ticker":"TER","name":"Teradyne, Inc. Common Stock","sector":"科技","weight":0.16,"change":2.01},{"ticker":"MPWR","name":"Monolithic Power Systems, Inc. Common Stock","sector":"科技","weight":0.16,"change":2.9},{"ticker":"BKR","name":"Baker Hughes Company Class A Common Stock","sector":"能源","weight":0.15,"change":2.18},{"ticker":"FAST","name":"Fastenal Company Common Stock","sector":"工业","weight":0.14,"change":-0.62},{"ticker":"NXPI","name":"NXP Semiconductors N.V. Common Stock","sector":"科技","weight":0.14,"change":1.21},{"ticker":"CRWV","name":"CoreWeave, Inc. Class A Common Stock","sector":"科技","weight":0.14,"change":-0.97},{"ticker":"ADSK","name":"Autodesk, Inc. Common Stock","sector":"Technology","weight":0.13,"change":-2.44},{"ticker":"FANG","name":"Diamondback Energy, Inc. Common Stock","sector":"能源","weight":0.13,"change":1.48},{"ticker":"PYPL","name":"PayPal Holdings, Inc. Common Stock","sector":"科技","weight":0.13,"change":1.77},{"ticker":"ALAB","name":"Astera Labs, Inc. Common Stock","sector":"科技","weight":0.13,"change":-0.36},{"ticker":"HONA","name":"Honeywell Aerospace Inc. Common Stock","sector":"Industrials","weight":0.13,"change":-2.03},{"ticker":"XEL","name":"Xcel Energy Inc. Common Stock","sector":"公用事业","weight":0.12,"change":0.24},{"ticker":"AXON","name":"Axon Enterprise, Inc. Common Stock","sector":"工业","weight":0.12,"change":-0.45},{"ticker":"WDAY","name":"Workday, Inc. Class A Common Stock","sector":"科技","weight":0.12,"change":-3.76},{"ticker":"RKLB","name":"Rocket Lab Corporation Common Stock","sector":"工业","weight":0.12,"change":0.19},{"ticker":"TTWO","name":"Take-Two Interactive Software, Inc. Common Stock","sector":"通信服务","weight":0.11,"change":2.08},{"ticker":"EXC","name":"Exelon Corporation Common Stock","sector":"公用事业","weight":0.11,"change":0.57},{"ticker":"CCEP","name":"Coca-Cola Europacific Partners plc Ordinary Shares","sector":"必需消费","weight":0.11,"change":0.15},{"ticker":"TRI","name":"Thomson Reuters Corporation Common Shares","sector":"工业","weight":0.11,"change":-2.32},{"ticker":"FER","name":"Ferrovial N.V. Ordinary Shares","sector":"工业","weight":0.11,"change":-0.59},{"ticker":"PAYX","name":"Paychex, Inc. Common Stock","sector":"科技","weight":0.1,"change":-2.7},{"ticker":"IDXX","name":"IDEXX Laboratories, Inc. Common Stock","sector":"医疗保健","weight":0.1,"change":-2.82},{"ticker":"ODFL","name":"Old Dominion Freight Line, Inc. Common Stock","sector":"工业","weight":0.1,"change":-2.21},{"ticker":"MCHP","name":"Microchip Technology Incorporated Common Stock","sector":"科技","weight":0.1,"change":1.91},{"ticker":"KDP","name":"Keurig Dr Pepper Inc. Common Stock","sector":"必需消费","weight":0.1,"change":1.03},{"ticker":"MSTR","name":"Strategy Inc Common Stock Class A","sector":"科技","weight":0.09,"change":-4.18},{"ticker":"ROP","name":"Roper Technologies, Inc. Common Stock","sector":"工业","weight":0.09,"change":0.46},{"ticker":"DXCM","name":"DexCom, Inc. Common Stock","sector":"医疗保健","weight":0.08,"change":-1.89},{"ticker":"GEHC","name":"GE HealthCare Technologies Inc. Common Stock","sector":"医疗保健","weight":0.08,"change":-0.14},{"ticker":"CPRT","name":"Copart, Inc. (DE) Common Stock","sector":"工业","weight":0.07,"change":7.55},{"ticker":"ALNY","name":"Alnylam Pharmaceuticals, Inc. Common Stock","sector":"医疗保健","weight":0.07,"change":0.67},{"ticker":"KHC","name":"The Kraft Heinz Company Common Stock","sector":"必需消费","weight":0.07,"change":0.51}],"pie_stocks":[{"ticker":"NVDA","name":"NVIDIA Corporation Common Stock","sector":"科技","weight":12.96,"change":-0.06},{"ticker":"AAPL","name":"Apple Inc. Common Stock","sector":"科技","weight":10.61,"change":0.22},{"ticker":"MSFT","name":"Microsoft Corporation Common Stock","sector":"科技","weight":8.74,"change":-0.3},{"ticker":"AMZN","name":"Amazon.com, Inc. Common Stock","sector":"可选消费","weight":6.73,"change":-0.94},{"ticker":"GOOGL","name":"Alphabet Inc. Class A Common Stock","sector":"通信服务","weight":5.18,"change":-0.13},{"ticker":"GOOG","name":"Alphabet Inc. Class C Capital Stock","sector":"通信服务","weight":4.84,"change":-0.12},{"ticker":"AVGO","name":"Broadcom Inc. Common Stock","sector":"科技","weight":4.44,"change":-5.94},{"ticker":"SPCX","name":"Space Exploration Technologies Corp. Class A Common Stock","sector":"Industrials","weight":4.39,"change":-0.91},{"ticker":"META","name":"Meta Platforms, Inc. Class A Common Stock","sector":"通信服务","weight":3.57,"change":-0.86},{"ticker":"TSLA","name":"Tesla, Inc. Common Stock","sector":"可选消费","weight":3.21,"change":0.68},{"ticker":"MU","name":"Micron Technology, Inc. Common Stock","sector":"科技","weight":2.61,"change":2.3},{"ticker":"WMT","name":"Walmart Inc. Common Stock","sector":"必需消费","weight":2.18,"change":-0.39},{"ticker":"AMD","name":"Advanced Micro Devices, Inc. Common Stock","sector":"科技","weight":2.0,"change":6.5},{"ticker":"ASML","name":"ASML Holding N.V. New York Registry Shares","sector":"科技","weight":1.68,"change":-0.21},{"ticker":"INTC","name":"Intel Corporation Common Stock","sector":"科技","weight":1.23,"change":-1.97},{"ticker":"其他","name":"其他87只","sector":"","weight":25.61,"change":-0.22}],"sectors":[{"name":"科技","weight":56.9,"change":-0.38,"count":40},{"name":"通信服务","weight":15.33,"change":-0.28,"count":8},{"name":"可选消费","weight":12.66,"change":-0.42,"count":12},{"name":"Industrials","weight":4.52,"change":-0.94,"count":2},{"name":"必需消费","weight":4.34,"change":-0.15,"count":8},{"name":"工业","weight":2.14,"change":0.2,"count":13},{"name":"医疗保健","weight":2.1,"change":-0.91,"count":9},{"name":"Technology","weight":0.9,"change":5.48,"count":3},{"name":"公用事业","weight":0.63,"change":0.72,"count":4},{"name":"能源","weight":0.28,"change":1.86,"count":2},{"name":"Communication Services","weight":0.18,"change":8.88,"count":1}],"bins":{"labels":["<-3%","-3~-2%","-2~-1%","-1~0%","0~1%","1~2%","2~3%",">3%"],"counts":[7,12,7,25,28,8,8,7]},"history":[29697.87,29173.02,29252.56,29727.1,29825.11,29264.1,29586.29,29502.6,29025.77,28592.66,28604.23,29155.18,28998.1,28454.81,28128.34,28039.21,27763.13,27192.31,28106.35,28274.2,28776.8,29733.16,29487.79,29373.33,29722.3,29621.8,29525.48,29742.6,30084.5,30046.14],"date":"2026-08-16","build_time":"2026-08-16 07:12:17"};
+  const DATA = {"index":{"price":30046.14,"prev_close":30084.5,"change":-0.13,"up":50,"down":51,"flat":1,"total":102},"stocks":[{"ticker":"NVDA","name":"NVIDIA Corporation Common Stock","sector":"科技","weight":12.96,"change":-0.06},{"ticker":"AAPL","name":"Apple Inc. Common Stock","sector":"科技","weight":10.61,"change":0.22},{"ticker":"MSFT","name":"Microsoft Corporation Common Stock","sector":"科技","weight":8.74,"change":-0.3},{"ticker":"AMZN","name":"Amazon.com, Inc. Common Stock","sector":"可选消费","weight":6.73,"change":-0.94},{"ticker":"GOOGL","name":"Alphabet Inc. Class A Common Stock","sector":"通信服务","weight":5.18,"change":-0.13},{"ticker":"GOOG","name":"Alphabet Inc. Class C Capital Stock","sector":"通信服务","weight":4.84,"change":-0.12},{"ticker":"AVGO","name":"Broadcom Inc. Common Stock","sector":"科技","weight":4.44,"change":-5.94},{"ticker":"SPCX","name":"Space Exploration Technologies Corp. Class A Common Stock","sector":"Industrials","weight":4.39,"change":-0.91},{"ticker":"META","name":"Meta Platforms, Inc. Class A Common Stock","sector":"通信服务","weight":3.57,"change":-0.86},{"ticker":"TSLA","name":"Tesla, Inc. Common Stock","sector":"可选消费","weight":3.21,"change":0.68},{"ticker":"MU","name":"Micron Technology, Inc. Common Stock","sector":"科技","weight":2.61,"change":2.3},{"ticker":"WMT","name":"Walmart Inc. Common Stock","sector":"必需消费","weight":2.18,"change":-0.39},{"ticker":"AMD","name":"Advanced Micro Devices, Inc. Common Stock","sector":"科技","weight":2.0,"change":6.5},{"ticker":"ASML","name":"ASML Holding N.V. New York Registry Shares","sector":"科技","weight":1.68,"change":-0.21},{"ticker":"INTC","name":"Intel Corporation Common Stock","sector":"科技","weight":1.23,"change":-1.97},{"ticker":"CSCO","name":"Cisco Systems, Inc. Common Stock (DE)","sector":"科技","weight":1.05,"change":-1.58},{"ticker":"COST","name":"Costco Wholesale Corporation Common Stock","sector":"必需消费","weight":1.01,"change":-0.08},{"ticker":"LRCX","name":"Lam Research Corporation Common Stock","sector":"科技","weight":0.99,"change":-1.38},{"ticker":"PLTR","name":"Palantir Technologies Inc. Class A Common Stock","sector":"科技","weight":0.99,"change":-2.78},{"ticker":"AMAT","name":"Applied Materials, Inc. Common Stock","sector":"科技","weight":0.96,"change":-5.12},{"ticker":"NFLX","name":"Netflix, Inc. Common Stock","sector":"通信服务","weight":0.77,"change":-0.1},{"ticker":"PANW","name":"Palo Alto Networks, Inc. Common Stock","sector":"科技","weight":0.74,"change":-2.96},{"ticker":"ARM","name":"Arm Holdings plc American Depositary Shares","sector":"科技","weight":0.71,"change":0.28},{"ticker":"KLAC","name":"KLA Corporation Common Stock","sector":"科技","weight":0.63,"change":-2.7},{"ticker":"TXN","name":"Texas Instruments Incorporated Common Stock","sector":"科技","weight":0.61,"change":2.25},{"ticker":"SNDK","name":"Sandisk Corporation Common Stock","sector":"Technology","weight":0.57,"change":7.39},{"ticker":"AMGN","name":"Amgen Inc. Common Stock","sector":"医疗保健","weight":0.53,"change":-0.63},{"ticker":"CRWD","name":"CrowdStrike Holdings, Inc. Class A Common Stock","sector":"科技","weight":0.53,"change":-3.8},{"ticker":"LIN","name":"Linde plc Ordinary Shares","sector":"工业","weight":0.53,"change":0.95},{"ticker":"STX","name":"Seagate Technology Holdings PLC Ordinary Shares (Ireland)","sector":"科技","weight":0.52,"change":5.65},{"ticker":"MRVL","name":"Marvell Technology, Inc. Common Stock","sector":"科技","weight":0.47,"change":-0.07},{"ticker":"TMUS","name":"T-Mobile US, Inc. Common Stock","sector":"通信服务","weight":0.47,"change":-0.42},{"ticker":"SHOP","name":"Shopify Inc. Class A Subordinate Voting Shares","sector":"可选消费","weight":0.47,"change":-2.66},{"ticker":"PEP","name":"PepsiCo, Inc. Common Stock","sector":"必需消费","weight":0.46,"change":0.12},{"ticker":"ADI","name":"Analog Devices, Inc. Common Stock","sector":"科技","weight":0.45,"change":2.16},{"ticker":"WDC","name":"Western Digital Corporation Common Stock","sector":"科技","weight":0.42,"change":4.41},{"ticker":"QCOM","name":"QUALCOMM Incorporated Common Stock","sector":"科技","weight":0.41,"change":0.61},{"ticker":"GILD","name":"Gilead Sciences, Inc. Common Stock","sector":"医疗保健","weight":0.41,"change":0.16},{"ticker":"BKNG","name":"Booking Holdings Inc. Common Stock","sector":"可选消费","weight":0.38,"change":-0.6},{"ticker":"ISRG","name":"Intuitive Surgical, Inc. Common Stock","sector":"医疗保健","weight":0.33,"change":-1.68},{"ticker":"VRTX","name":"Vertex Pharmaceuticals Incorporated Common Stock","sector":"医疗保健","weight":0.3,"change":-2.07},{"ticker":"SBUX","name":"Starbucks Corporation Common Stock","sector":"可选消费","weight":0.29,"change":-0.22},{"ticker":"PDD","name":"PDD Holdings Inc. American Depositary Shares","sector":"可选消费","weight":0.29,"change":0.74},{"ticker":"FTNT","name":"Fortinet, Inc. Common Stock","sector":"科技","weight":0.28,"change":-3.28},{"ticker":"ADP","name":"Automatic Data Processing, Inc. Common Stock","sector":"科技","weight":0.26,"change":-1.18},{"ticker":"ABNB","name":"Airbnb, Inc. Class A Common Stock","sector":"可选消费","weight":0.26,"change":-0.58},{"ticker":"ADBE","name":"Adobe Inc. Common Stock","sector":"科技","weight":0.25,"change":-2.39},{"ticker":"APP","name":"Applovin Corporation Class A Common Stock","sector":"科技","weight":0.25,"change":0.89},{"ticker":"CEG","name":"Constellation Energy Corporation Common Stock","sector":"公用事业","weight":0.24,"change":1.39},{"ticker":"CMCSA","name":"Comcast Corporation Class A Common Stock","sector":"通信服务","weight":0.22,"change":0.0},{"ticker":"MNST","name":"Monster Beverage Corporation","sector":"必需消费","weight":0.22,"change":0.3},{"ticker":"INTU","name":"Intuit Inc. Common Stock","sector":"科技","weight":0.22,"change":-3.53},{"ticker":"CSX","name":"CSX Corporation Common Stock","sector":"工业","weight":0.22,"change":0.04},{"ticker":"MAR","name":"Marriott International Class A Common Stock","sector":"可选消费","weight":0.22,"change":1.19},{"ticker":"MELI","name":"MercadoLibre, Inc. Common Stock","sector":"可选消费","weight":0.22,"change":0.89},{"ticker":"DDOG","name":"Datadog, Inc. Class A Common Stock","sector":"科技","weight":0.22,"change":1.28},{"ticker":"DASH","name":"DoorDash, Inc. Class A Common Stock","sector":"可选消费","weight":0.22,"change":0.35},{"ticker":"CDNS","name":"Cadence Design Systems, Inc. Common Stock","sector":"科技","weight":0.21,"change":0.32},{"ticker":"REGN","name":"Regeneron Pharmaceuticals, Inc. Common Stock","sector":"医疗保健","weight":0.2,"change":-0.31},{"ticker":"LITE","name":"Lumentum Holdings Inc. Common Stock","sector":"Technology","weight":0.2,"change":5.19},{"ticker":"CTAS","name":"Cintas Corporation Common Stock","sector":"工业","weight":0.19,"change":-0.33},{"ticker":"ROST","name":"Ross Stores, Inc. Common Stock","sector":"可选消费","weight":0.19,"change":0.16},{"ticker":"SNPS","name":"Synopsys, Inc. Common Stock","sector":"科技","weight":0.19,"change":2.37},{"ticker":"MDLZ","name":"Mondelez International, Inc. Class A Common Stock","sector":"必需消费","weight":0.19,"change":0.13},{"ticker":"ORLY","name":"O'Reilly Automotive, Inc. Common Stock","sector":"可选消费","weight":0.18,"change":-1.65},{"ticker":"HON","name":"Honeywell International Inc. Common Stock","sector":"工业","weight":0.18,"change":0.29},{"ticker":"NBIS","name":"Nebius Group N.V. Class A Ordinary Shares","sector":"Communication Services","weight":0.18,"change":8.88},{"ticker":"WBD","name":"Warner Bros. Discovery, Inc. Series A Common Stock","sector":"通信服务","weight":0.17,"change":0.86},{"ticker":"PCAR","name":"PACCAR Inc. Common Stock","sector":"工业","weight":0.16,"change":0.05},{"ticker":"AEP","name":"American Electric Power Company, Inc. Common Stock","sector":"公用事业","weight":0.16,"change":0.18},{"ticker":"TER","name":"Teradyne, Inc. Common Stock","sector":"科技","weight":0.16,"change":2.01},{"ticker":"MPWR","name":"Monolithic Power Systems, Inc. Common Stock","sector":"科技","weight":0.16,"change":2.9},{"ticker":"BKR","name":"Baker Hughes Company Class A Common Stock","sector":"能源","weight":0.15,"change":2.18},{"ticker":"FAST","name":"Fastenal Company Common Stock","sector":"工业","weight":0.14,"change":-0.62},{"ticker":"NXPI","name":"NXP Semiconductors N.V. Common Stock","sector":"科技","weight":0.14,"change":1.21},{"ticker":"CRWV","name":"CoreWeave, Inc. Class A Common Stock","sector":"科技","weight":0.14,"change":-0.97},{"ticker":"ADSK","name":"Autodesk, Inc. Common Stock","sector":"Technology","weight":0.13,"change":-2.44},{"ticker":"FANG","name":"Diamondback Energy, Inc. Common Stock","sector":"能源","weight":0.13,"change":1.48},{"ticker":"PYPL","name":"PayPal Holdings, Inc. Common Stock","sector":"科技","weight":0.13,"change":1.77},{"ticker":"ALAB","name":"Astera Labs, Inc. Common Stock","sector":"科技","weight":0.13,"change":-0.36},{"ticker":"HONA","name":"Honeywell Aerospace Inc. Common Stock","sector":"Industrials","weight":0.13,"change":-2.03},{"ticker":"XEL","name":"Xcel Energy Inc. Common Stock","sector":"公用事业","weight":0.12,"change":0.24},{"ticker":"AXON","name":"Axon Enterprise, Inc. Common Stock","sector":"工业","weight":0.12,"change":-0.45},{"ticker":"WDAY","name":"Workday, Inc. Class A Common Stock","sector":"科技","weight":0.12,"change":-3.76},{"ticker":"RKLB","name":"Rocket Lab Corporation Common Stock","sector":"工业","weight":0.12,"change":0.19},{"ticker":"TTWO","name":"Take-Two Interactive Software, Inc. Common Stock","sector":"通信服务","weight":0.11,"change":2.08},{"ticker":"EXC","name":"Exelon Corporation Common Stock","sector":"公用事业","weight":0.11,"change":0.57},{"ticker":"CCEP","name":"Coca-Cola Europacific Partners plc Ordinary Shares","sector":"必需消费","weight":0.11,"change":0.15},{"ticker":"TRI","name":"Thomson Reuters Corporation Common Shares","sector":"工业","weight":0.11,"change":-2.32},{"ticker":"FER","name":"Ferrovial N.V. Ordinary Shares","sector":"工业","weight":0.11,"change":-0.59},{"ticker":"PAYX","name":"Paychex, Inc. Common Stock","sector":"科技","weight":0.1,"change":-2.7},{"ticker":"IDXX","name":"IDEXX Laboratories, Inc. Common Stock","sector":"医疗保健","weight":0.1,"change":-2.82},{"ticker":"ODFL","name":"Old Dominion Freight Line, Inc. Common Stock","sector":"工业","weight":0.1,"change":-2.21},{"ticker":"MCHP","name":"Microchip Technology Incorporated Common Stock","sector":"科技","weight":0.1,"change":1.91},{"ticker":"KDP","name":"Keurig Dr Pepper Inc. Common Stock","sector":"必需消费","weight":0.1,"change":1.03},{"ticker":"MSTR","name":"Strategy Inc Common Stock Class A","sector":"科技","weight":0.09,"change":-4.18},{"ticker":"ROP","name":"Roper Technologies, Inc. Common Stock","sector":"工业","weight":0.09,"change":0.46},{"ticker":"DXCM","name":"DexCom, Inc. Common Stock","sector":"医疗保健","weight":0.08,"change":-1.89},{"ticker":"GEHC","name":"GE HealthCare Technologies Inc. Common Stock","sector":"医疗保健","weight":0.08,"change":-0.14},{"ticker":"CPRT","name":"Copart, Inc. (DE) Common Stock","sector":"工业","weight":0.07,"change":7.55},{"ticker":"ALNY","name":"Alnylam Pharmaceuticals, Inc. Common Stock","sector":"医疗保健","weight":0.07,"change":0.67},{"ticker":"KHC","name":"The Kraft Heinz Company Common Stock","sector":"必需消费","weight":0.07,"change":0.51}],"pie_stocks":[{"ticker":"NVDA","name":"NVIDIA Corporation Common Stock","sector":"科技","weight":12.96,"change":-0.06},{"ticker":"AAPL","name":"Apple Inc. Common Stock","sector":"科技","weight":10.61,"change":0.22},{"ticker":"MSFT","name":"Microsoft Corporation Common Stock","sector":"科技","weight":8.74,"change":-0.3},{"ticker":"AMZN","name":"Amazon.com, Inc. Common Stock","sector":"可选消费","weight":6.73,"change":-0.94},{"ticker":"GOOGL","name":"Alphabet Inc. Class A Common Stock","sector":"通信服务","weight":5.18,"change":-0.13},{"ticker":"GOOG","name":"Alphabet Inc. Class C Capital Stock","sector":"通信服务","weight":4.84,"change":-0.12},{"ticker":"AVGO","name":"Broadcom Inc. Common Stock","sector":"科技","weight":4.44,"change":-5.94},{"ticker":"SPCX","name":"Space Exploration Technologies Corp. Class A Common Stock","sector":"Industrials","weight":4.39,"change":-0.91},{"ticker":"META","name":"Meta Platforms, Inc. Class A Common Stock","sector":"通信服务","weight":3.57,"change":-0.86},{"ticker":"TSLA","name":"Tesla, Inc. Common Stock","sector":"可选消费","weight":3.21,"change":0.68},{"ticker":"MU","name":"Micron Technology, Inc. Common Stock","sector":"科技","weight":2.61,"change":2.3},{"ticker":"WMT","name":"Walmart Inc. Common Stock","sector":"必需消费","weight":2.18,"change":-0.39},{"ticker":"AMD","name":"Advanced Micro Devices, Inc. Common Stock","sector":"科技","weight":2.0,"change":6.5},{"ticker":"ASML","name":"ASML Holding N.V. New York Registry Shares","sector":"科技","weight":1.68,"change":-0.21},{"ticker":"INTC","name":"Intel Corporation Common Stock","sector":"科技","weight":1.23,"change":-1.97},{"ticker":"其他","name":"其他87只","sector":"","weight":25.61,"change":-0.22}],"sectors":[{"name":"科技","weight":56.9,"change":-0.38,"count":40},{"name":"通信服务","weight":15.33,"change":-0.28,"count":8},{"name":"可选消费","weight":12.66,"change":-0.42,"count":12},{"name":"Industrials","weight":4.52,"change":-0.94,"count":2},{"name":"必需消费","weight":4.34,"change":-0.15,"count":8},{"name":"工业","weight":2.14,"change":0.2,"count":13},{"name":"医疗保健","weight":2.1,"change":-0.91,"count":9},{"name":"Technology","weight":0.9,"change":5.48,"count":3},{"name":"公用事业","weight":0.63,"change":0.72,"count":4},{"name":"能源","weight":0.28,"change":1.86,"count":2},{"name":"Communication Services","weight":0.18,"change":8.88,"count":1}],"bins":{"labels":["<-3%","-3~-2%","-2~-1%","-1~0%","0~1%","1~2%","2~3%",">3%"],"counts":[7,12,7,25,28,8,8,7]},"history":[29697.87,29173.02,29252.56,29727.1,29825.11,29264.1,29586.29,29502.6,29025.77,28592.66,28604.23,29155.18,28998.1,28454.81,28128.34,28039.21,27763.13,27192.31,28106.35,28274.2,28776.8,29733.16,29487.79,29373.33,29722.3,29621.8,29525.48,29742.6,30084.5,30046.14],"date":"2026-08-16","build_time":"2026-08-16 08:27:44"};
   const HISTORY_DATES = ["2026-07-17", "2026-07-20", "2026-07-21", "2026-07-22", "2026-07-23", "2026-07-24", "2026-07-27", "2026-07-28", "2026-07-29", "2026-07-30", "2026-07-31", "2026-08-03", "2026-08-04", "2026-08-05", "2026-08-06", "2026-08-07", "2026-08-10", "2026-08-11", "2026-08-12", "2026-08-13", "2026-08-14", "2026-08-15", "2026-08-16"];
   const IS_HISTORY = false;
 
@@ -571,9 +572,8 @@
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
   let audioCtx = null;
   let isMuted = false;
-  let audioReady = false;  // 标记音频是否已激活
+  let audioReady = false;
 
-  // 读取静音状态
   const muteState = localStorage.getItem('ndxMuted');
   if (muteState === 'true') {
     isMuted = true;
@@ -593,12 +593,10 @@
     }
   }
 
-  // 页面加载后绑定一次点击事件，用于激活音频
   function activateAudioOnFirstClick() {
     if (audioReady) return;
     const handler = function() {
       initAudio();
-      // 播放一个极短提示音（可选）
       if (!isMuted) {
         try {
           const now = audioCtx.currentTime;
@@ -619,13 +617,10 @@
     document.addEventListener('click', handler);
   }
 
-  // 播放故障音效
   function playGlitchSound(type) {
     if (isMuted) return;
-    // 如果音频还没激活，尝试激活
     if (!audioReady) {
       initAudio();
-      // 如果激活后仍然不可用，则放弃本次播放
       if (!audioReady) return;
     }
     try {
@@ -681,7 +676,6 @@
     } catch (e) {}
   }
 
-  // 静音切换（纯汉字）
   const muteBtn = document.getElementById('muteBtn');
   if (muteBtn) {
     muteBtn.textContent = isMuted ? '静音' : '音效';
@@ -690,19 +684,15 @@
       localStorage.setItem('ndxMuted', isMuted ? 'true' : 'false');
       muteBtn.textContent = isMuted ? '静音' : '音效';
       if (!isMuted) {
-        // 激活音频并播放一个提示音
         initAudio();
         if (!audioReady) {
-          // 如果尚未激活，尝试用点击激活
           audioReady = true;
-          // 直接播放一个短音
         }
         playGlitchSound('switch');
       }
     });
   }
 
-  // 页面加载后绑定激活监听器
   activateAudioOnFirstClick();
 
   // ==============================================================
@@ -818,28 +808,59 @@
   const sorted = stocks.slice().sort((a, b) => b.change - a.change);
   const top5 = sorted.slice(0, 5);
   const bottom5 = sorted.slice(-5).reverse();
+
+  // ===== 领涨/领跌（增加公司名称悬浮提示） =====
   const leaderGrid = document.getElementById('leaderGrid');
+
   const col1 = document.createElement('div');
   col1.className = 'leader-col';
   col1.innerHTML = '<div class="col-title" style="color:var(--color-rise);">▲ 领涨</div>';
   top5.forEach(s => {
     const item = document.createElement('div');
     item.className = 'leader-item';
-    item.innerHTML = `<span class="glitch-text">${s.ticker}</span><span class="val glitch-text" style="color:var(--color-rise);">${fmtPct(s.change)}</span>`;
+    const tickerSpan = document.createElement('span');
+    tickerSpan.className = 'glitch-text';
+    tickerSpan.textContent = s.ticker;
+    const valSpan = document.createElement('span');
+    valSpan.className = 'val glitch-text';
+    valSpan.style.color = 'var(--color-rise)';
+    valSpan.textContent = fmtPct(s.change);
+    item.appendChild(tickerSpan);
+    item.appendChild(valSpan);
+    // 鼠标悬浮显示公司名称
+    item.addEventListener('mouseenter', function(e) {
+      showTip(e, `${s.ticker} ${s.name}`);
+    });
+    item.addEventListener('mouseleave', hideTip);
     col1.appendChild(item);
   });
+
   const col2 = document.createElement('div');
   col2.className = 'leader-col';
   col2.innerHTML = '<div class="col-title" style="color:var(--color-fall);">▼ 领跌</div>';
   bottom5.forEach(s => {
     const item = document.createElement('div');
     item.className = 'leader-item';
-    item.innerHTML = `<span class="glitch-text">${s.ticker}</span><span class="val glitch-text" style="color:var(--color-fall);">${fmtPct(s.change)}</span>`;
+    const tickerSpan = document.createElement('span');
+    tickerSpan.className = 'glitch-text';
+    tickerSpan.textContent = s.ticker;
+    const valSpan = document.createElement('span');
+    valSpan.className = 'val glitch-text';
+    valSpan.style.color = 'var(--color-fall)';
+    valSpan.textContent = fmtPct(s.change);
+    item.appendChild(tickerSpan);
+    item.appendChild(valSpan);
+    item.addEventListener('mouseenter', function(e) {
+      showTip(e, `${s.ticker} ${s.name}`);
+    });
+    item.addEventListener('mouseleave', hideTip);
     col2.appendChild(item);
   });
+
   leaderGrid.appendChild(col1);
   leaderGrid.appendChild(col2);
 
+  // 30日趋势
   if (history.length >= 2) {
     const change30 = (history[history.length-1] - history[0]) / history[0] * 100;
     const high = Math.max(...history);
@@ -1082,7 +1103,37 @@
     }
   })();
 
-  console.log('✦ Glitch 风格 · 音效已加载 ✦');
+  // ==============================================================
+  // Tooltip（已存在，但确保函数可用）
+  // ==============================================================
+  const tip = document.getElementById('tooltip');
+  if (!tip) {
+    // 如果页面没有 tooltip 元素，创建一个（实际上HTML中已存在）
+    const newTip = document.createElement('div');
+    newTip.id = 'tooltip';
+    newTip.className = 'tooltip';
+    document.body.appendChild(newTip);
+  }
+  function showTip(e, html) {
+    const tipEl = document.getElementById('tooltip');
+    if (!tipEl) return;
+    tipEl.innerHTML = html;
+    tipEl.style.opacity = '1';
+    const tw = tipEl.offsetWidth, th = tipEl.offsetHeight;
+    let left = e.clientX - tw/2;
+    let top = e.clientY - th - 14;
+    if (left < 8) left = 8;
+    if (left + tw > window.innerWidth - 8) left = window.innerWidth - tw - 8;
+    if (top < 8) top = e.clientY + 14;
+    tipEl.style.left = left + 'px';
+    tipEl.style.top = top + 'px';
+  }
+  function hideTip() {
+    const tipEl = document.getElementById('tooltip');
+    if (tipEl) tipEl.style.opacity = '0';
+  }
+
+  console.log('✦ Glitch 风格 · 音效已加载 · 领涨领跌悬浮提示已启用 ✦');
 </script>
 </body>
 </html>
