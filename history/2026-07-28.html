@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&family=Noto+Sans+SC:wght@500;700;900&display=swap" rel="stylesheet">
   <style>
-    /* ===== 全局 CSS 变量（暗色默认） ===== */
+    /* ===== 基础变量（固定背景、文字、边框） ===== */
     :root {
       --bg-body: #0b0b0b;
       --bg-sticky: rgba(11, 11, 11, 0.92);
@@ -18,20 +18,7 @@
       --text-secondary: #aaaaaa;
       --text-muted: #666666;
       --text-dim: #444444;
-      --color-rise: #0ff;
-      --color-fall: #f0f;
-      --color-rise-bg: rgba(0,255,255,0.1);
-      --color-fall-bg: rgba(255,0,255,0.1);
-      --glitch-color1: #0ff;
-      --glitch-color2: #f0f;
-      --shadow-rise: 0 0 30px rgba(0,255,255,0.2);
-      --shadow-fall: 0 0 30px rgba(255,0,255,0.2);
-      --badge-border: rgba(0,255,255,0.3);
-      --glow-rise: rgba(0, 255, 255, 0.25);
-      --glow-fall: rgba(255, 0, 255, 0.25);
     }
-
-    /* ===== 日间模式 ===== */
     html.light {
       --bg-body: #f2f4f8;
       --bg-sticky: rgba(255, 255, 255, 0.85);
@@ -41,18 +28,37 @@
       --text-secondary: #2d2d2d;
       --text-muted: #6b7280;
       --text-dim: #9ca3af;
-      --color-rise: #0ea5e9;
-      --color-fall: #ec4899;
-      --color-rise-bg: rgba(14, 165, 233, 0.12);
-      --color-fall-bg: rgba(236, 72, 153, 0.12);
-      --glitch-color1: #0ea5e9;
-      --glitch-color2: #ec4899;
-      --shadow-rise: 0 0 25px rgba(14, 165, 233, 0.25);
-      --shadow-fall: 0 0 25px rgba(236, 72, 153, 0.25);
-      --badge-border: rgba(14, 165, 233, 0.3);
-      --glow-rise: rgba(14, 165, 233, 0.20);
-      --glow-fall: rgba(236, 72, 153, 0.20);
     }
+
+    /* ===== 主题色（由 Python 动态注入涨跌色 + 光晕） ===== */
+    :root {
+  --color-rise: #7FFF00;
+  --color-fall: #8B00FF;
+  --color-rise-bg: rgba(127,255,0,0.12);
+  --color-fall-bg: rgba(139,0,255,0.12);
+  --glitch-color1: #7FFF00;
+  --glitch-color2: #8B00FF;
+  --shadow-rise: 0 0 30px rgba(127,255,0,0.25);
+  --shadow-fall: 0 0 30px rgba(139,0,255,0.25);
+  --glow-rise: rgba(127,255,0,0.25);
+  --glow-fall: rgba(139,0,255,0.25);
+  --badge-border: rgba(127,255,0,0.3);
+}
+
+html.light {
+  --color-rise: #b2ff65;
+  --color-fall: #b965ff;
+  --color-rise-bg: rgba(178,255,101,0.12);
+  --color-fall-bg: rgba(185,101,255,0.12);
+  --glitch-color1: #b2ff65;
+  --glitch-color2: #b965ff;
+  --shadow-rise: 0 0 30px rgba(178,255,101,0.25);
+  --shadow-fall: 0 0 30px rgba(185,101,255,0.25);
+  --glow-rise: rgba(178,255,101,0.25);
+  --glow-fall: rgba(185,101,255,0.25);
+  --badge-border: rgba(178,255,101,0.3);
+}
+
 
     /* ===== 重置 ===== */
     * { margin:0; padding:0; box-sizing:border-box; }
@@ -142,7 +148,8 @@
       display:flex; gap:2.5vw;
       animation:tickerScrollReverse 50s linear infinite;
       width:max-content;
-      font-size:clamp(14px,2vw,20px); font-weight:700;
+      font-size:clamp(14px, 2vw, 20px);
+      font-weight:700;
     }
     .sticky-top .ticker-track-top .track-inner span { display:inline-flex; align-items:center; gap:0.6vw; }
     .sticky-top .ticker-track-top .track-inner .up { color:var(--color-rise); }
@@ -187,7 +194,13 @@
       cursor:pointer; font-weight:700; transition:all 0.2s; font-family:inherit; line-height:1.5;
     }
     .theme-toggle:hover { background:var(--bg-card); border-color:var(--color-rise); color:var(--text-primary); }
-    /* 导航按钮组 */
+    .mute-btn {
+      background:none; border:1px solid var(--border-color); border-radius:40px;
+      color:var(--text-secondary);
+      font-size:clamp(12px,1.6vw,18px); padding:0.2vh 0.8vw;
+      cursor:pointer; font-weight:700; transition:all 0.2s; font-family:inherit; line-height:1.5;
+    }
+    .mute-btn:hover { background:var(--bg-card); border-color:var(--color-rise); color:var(--text-primary); }
     .nav-group {
       display:flex;
       align-items:center;
@@ -237,7 +250,8 @@
       display:flex; gap:2.5vw;
       animation:tickerScroll 60s linear infinite;
       width:max-content;
-      font-size:clamp(14px,2vw,20px); font-weight:700;
+      font-size:clamp(14px, 2vw, 20px);
+      font-weight:700;
     }
     .sticky-bottom .ticker-track span { display:inline-flex; align-items:center; gap:0.6vw; }
     .sticky-bottom .ticker-track .up { color:var(--color-rise); }
@@ -440,6 +454,7 @@
       .nav-btn { font-size:10px; padding:0.1vh 1.5vw; min-width:5vw; }
       .nav-btn.today-btn { font-size:9px; padding:0.1vh 2vw; }
       .nav-group { gap:1vw; }
+      .mute-btn { font-size:11px; padding:0.1vh 1.5vw; }
     }
   </style>
 </head>
@@ -476,6 +491,7 @@
         <button class="nav-btn" id="btnNext" disabled>→</button>
       </span>
       <button class="theme-toggle" id="themeToggle">日间</button>
+      <button class="mute-btn" id="muteBtn">音效</button>
     </div>
   </div>
 </div>
@@ -541,8 +557,8 @@
   // ==============================================================
   // 数据注入
   // ==============================================================
-  const DATA = {"index":{"price":27763.13,"prev_close":28039.21,"change":-0.98,"up":60,"down":39,"flat":0,"total":99},"stocks":[{"ticker":"AAPL","name":"苹果","sector":"科技","weight":11.04,"change":0.94},{"ticker":"NVDA","name":"英伟达","sector":"科技","weight":8.7,"change":0.25},{"ticker":"MSFT","name":"微软","sector":"科技","weight":7.3,"change":1.09},{"ticker":"AVGO","name":"博通","sector":"科技","weight":2.7,"change":-0.6},{"ticker":"ADBE","name":"Adobe","sector":"科技","weight":1.2,"change":4.81},{"ticker":"CSCO","name":"思科","sector":"科技","weight":1.0,"change":0.88},{"ticker":"INTU","name":"Intuit","sector":"科技","weight":0.9,"change":2.99},{"ticker":"QCOM","name":"高通","sector":"科技","weight":0.85,"change":-4.21},{"ticker":"AMAT","name":"应用材料","sector":"科技","weight":0.8,"change":-7.82},{"ticker":"TXN","name":"德州仪器","sector":"科技","weight":0.75,"change":-0.84},{"ticker":"AMD","name":"AMD","sector":"科技","weight":1.6,"change":-8.15},{"ticker":"PANW","name":"Palo Alto","sector":"科技","weight":0.55,"change":0.53},{"ticker":"ADI","name":"ADI","sector":"科技","weight":0.46,"change":-1.63},{"ticker":"MU","name":"美光","sector":"科技","weight":0.45,"change":-8.85},{"ticker":"LRCX","name":"Lam Research","sector":"科技","weight":0.42,"change":-7.54},{"ticker":"KLAC","name":"KLA","sector":"科技","weight":0.4,"change":-6.18},{"ticker":"SNPS","name":"Synopsys","sector":"科技","weight":0.35,"change":-1.33},{"ticker":"CDNS","name":"Cadence","sector":"科技","weight":0.34,"change":1.8},{"ticker":"PYPL","name":"PayPal","sector":"科技","weight":0.33,"change":4.01},{"ticker":"CRWD","name":"CrowdStrike","sector":"科技","weight":0.32,"change":0.94},{"ticker":"FTNT","name":"Fortinet","sector":"科技","weight":0.29,"change":-1.58},{"ticker":"MRVL","name":"Marvell","sector":"科技","weight":0.27,"change":-7.77},{"ticker":"NXPI","name":"NXP","sector":"科技","weight":0.24,"change":-3.19},{"ticker":"DDOG","name":"Datadog","sector":"科技","weight":0.12,"change":-0.39},{"ticker":"ADP","name":"ADP","sector":"科技","weight":0.17,"change":3.6},{"ticker":"PAYX","name":"Paychex","sector":"科技","weight":0.15,"change":4.01},{"ticker":"INTC","name":"英特尔","sector":"科技","weight":0.19,"change":-5.86},{"ticker":"MCHP","name":"Microchip","sector":"科技","weight":0.07,"change":-2.81},{"ticker":"MSTR","name":"MicroStrategy","sector":"科技","weight":0.06,"change":-2.52},{"ticker":"APP","name":"AppLovin","sector":"科技","weight":0.06,"change":1.33},{"ticker":"ARM","name":"ARM","sector":"科技","weight":0.06,"change":-8.11},{"ticker":"PLTR","name":"Palantir","sector":"科技","weight":0.05,"change":-6.08},{"ticker":"TEAM","name":"Atlassian","sector":"科技","weight":0.05,"change":4.29},{"ticker":"WDAY","name":"Workday","sector":"科技","weight":0.05,"change":8.24},{"ticker":"STX","name":"希捷","sector":"科技","weight":0.04,"change":-8.53},{"ticker":"WDC","name":"西数","sector":"科技","weight":0.04,"change":-6.91},{"ticker":"ASML","name":"ASML","sector":"科技","weight":0.03,"change":-4.24},{"ticker":"MPWR","name":"MPS","sector":"科技","weight":0.03,"change":-4.26},{"ticker":"ALAB","name":"Astera","sector":"科技","weight":0.02,"change":-7.89},{"ticker":"CRWV","name":"CoreWeave","sector":"科技","weight":0.02,"change":-4.93},{"ticker":"TER","name":"泰瑞达","sector":"科技","weight":0.02,"change":-4.22},{"ticker":"GOOGL","name":"谷歌A","sector":"通信服务","weight":2.5,"change":2.19},{"ticker":"GOOG","name":"谷歌C","sector":"通信服务","weight":2.5,"change":1.85},{"ticker":"META","name":"Meta","sector":"通信服务","weight":3.3,"change":-0.08},{"ticker":"NFLX","name":"奈飞","sector":"通信服务","weight":1.8,"change":2.83},{"ticker":"TMUS","name":"T-Mobile","sector":"通信服务","weight":1.1,"change":2.92},{"ticker":"CMCSA","name":"康卡斯特","sector":"通信服务","weight":0.7,"change":6.1},{"ticker":"WBD","name":"华纳兄弟","sector":"通信服务","weight":0.07,"change":1.31},{"ticker":"TTWO","name":"Take-Two","sector":"通信服务","weight":0.07,"change":1.5},{"ticker":"AMZN","name":"亚马逊","sector":"可选消费","weight":6.7,"change":-0.23},{"ticker":"TSLA","name":"特斯拉","sector":"可选消费","weight":3.6,"change":-0.58},{"ticker":"BKNG","name":"Booking","sector":"可选消费","weight":0.52,"change":6.7},{"ticker":"SBUX","name":"星巴克","sector":"可选消费","weight":0.5,"change":-0.53},{"ticker":"MELI","name":"MercadoLibre","sector":"可选消费","weight":0.37,"change":2.35},{"ticker":"MAR","name":"万豪","sector":"可选消费","weight":0.31,"change":0.12},{"ticker":"DASH","name":"DoorDash","sector":"可选消费","weight":0.28,"change":6.05},{"ticker":"ORLY","name":"O'Reilly","sector":"可选消费","weight":0.26,"change":0.64},{"ticker":"ABNB","name":"Airbnb","sector":"可选消费","weight":0.2,"change":4.26},{"ticker":"ROST","name":"Ross","sector":"可选消费","weight":0.14,"change":3.16},{"ticker":"SHOP","name":"Shopify","sector":"可选消费","weight":0.05,"change":2.68},{"ticker":"PDD","name":"拼多多","sector":"可选消费","weight":0.02,"change":1.01},{"ticker":"WMT","name":"沃尔玛","sector":"必需消费","weight":3.0,"change":1.22},{"ticker":"COST","name":"开市客","sector":"必需消费","weight":2.2,"change":1.58},{"ticker":"PEP","name":"百事","sector":"必需消费","weight":1.4,"change":2.2},{"ticker":"MDLZ","name":"亿滋","sector":"必需消费","weight":0.36,"change":2.98},{"ticker":"MNST","name":"Monster","sector":"必需消费","weight":0.21,"change":2.53},{"ticker":"KDP","name":"Keurig","sector":"必需消费","weight":0.18,"change":3.19},{"ticker":"KHC","name":"卡夫亨氏","sector":"必需消费","weight":0.16,"change":4.12},{"ticker":"CCEP","name":"可口可乐欧洲","sector":"必需消费","weight":0.03,"change":2.53},{"ticker":"AMGN","name":"安进","sector":"医疗保健","weight":0.65,"change":4.48},{"ticker":"ISRG","name":"直觉外科","sector":"医疗保健","weight":0.58,"change":1.39},{"ticker":"GILD","name":"吉利德","sector":"医疗保健","weight":0.48,"change":2.91},{"ticker":"VRTX","name":"Vertex","sector":"医疗保健","weight":0.43,"change":2.38},{"ticker":"REGN","name":"再生元","sector":"医疗保健","weight":0.38,"change":4.2},{"ticker":"DXCM","name":"Dexcom","sector":"医疗保健","weight":0.22,"change":2.02},{"ticker":"IDXX","name":"IDEXX","sector":"医疗保健","weight":0.08,"change":2.4},{"ticker":"GEHC","name":"GE医疗","sector":"医疗保健","weight":0.08,"change":4.89},{"ticker":"ALNY","name":"Alnylam","sector":"医疗保健","weight":0.05,"change":3.6},{"ticker":"LIN","name":"林德","sector":"工业","weight":1.3,"change":0.82},{"ticker":"HON","name":"霍尼韦尔","sector":"工业","weight":0.6,"change":0.53},{"ticker":"CSX","name":"CSX","sector":"工业","weight":0.3,"change":-1.85},{"ticker":"CTAS","name":"Cintas","sector":"工业","weight":0.25,"change":1.86},{"ticker":"CPRT","name":"Copart","sector":"工业","weight":0.23,"change":3.02},{"ticker":"ODFL","name":"Old Dominion","sector":"工业","weight":0.13,"change":-0.22},{"ticker":"FAST","name":"Fastenal","sector":"工业","weight":0.1,"change":1.52},{"ticker":"ROP","name":"Roper","sector":"工业","weight":0.05,"change":4.24},{"ticker":"VRSK","name":"Verisk","sector":"工业","weight":0.04,"change":2.71},{"ticker":"FER","name":"Ferrovial","sector":"工业","weight":0.02,"change":-1.73},{"ticker":"TRI","name":"汤森路透","sector":"工业","weight":0.02,"change":5.66},{"ticker":"PCAR","name":"Paccar","sector":"工业","weight":0.02,"change":3.57},{"ticker":"AXON","name":"Axon","sector":"工业","weight":0.03,"change":4.22},{"ticker":"RKLB","name":"Rocket Lab","sector":"工业","weight":0.02,"change":-4.56},{"ticker":"EXC","name":"Exelon","sector":"公用事业","weight":0.1,"change":0.34},{"ticker":"XEL","name":"Xcel","sector":"公用事业","weight":0.09,"change":-0.47},{"ticker":"AEP","name":"AEP","sector":"公用事业","weight":0.09,"change":-0.43},{"ticker":"CEG","name":"Constellation","sector":"公用事业","weight":0.03,"change":-3.77},{"ticker":"FANG","name":"Diamondback","sector":"能源","weight":0.03,"change":-2.8},{"ticker":"BKR","name":"Baker Hughes","sector":"能源","weight":0.02,"change":-3.52},{"ticker":"CSGP","name":"CoStar","sector":"房地产","weight":0.04,"change":3.98}],"pie_stocks":[{"ticker":"AAPL","name":"苹果","sector":"科技","weight":11.04,"change":0.94},{"ticker":"NVDA","name":"英伟达","sector":"科技","weight":8.7,"change":0.25},{"ticker":"MSFT","name":"微软","sector":"科技","weight":7.3,"change":1.09},{"ticker":"AMZN","name":"亚马逊","sector":"可选消费","weight":6.7,"change":-0.23},{"ticker":"TSLA","name":"特斯拉","sector":"可选消费","weight":3.6,"change":-0.58},{"ticker":"META","name":"Meta","sector":"通信服务","weight":3.3,"change":-0.08},{"ticker":"WMT","name":"沃尔玛","sector":"必需消费","weight":3.0,"change":1.22},{"ticker":"AVGO","name":"博通","sector":"科技","weight":2.7,"change":-0.6},{"ticker":"GOOGL","name":"谷歌A","sector":"通信服务","weight":2.5,"change":2.19},{"ticker":"GOOG","name":"谷歌C","sector":"通信服务","weight":2.5,"change":1.85},{"ticker":"COST","name":"开市客","sector":"必需消费","weight":2.2,"change":1.58},{"ticker":"NFLX","name":"奈飞","sector":"通信服务","weight":1.8,"change":2.83},{"ticker":"AMD","name":"AMD","sector":"科技","weight":1.6,"change":-8.15},{"ticker":"PEP","name":"百事","sector":"必需消费","weight":1.4,"change":2.2},{"ticker":"LIN","name":"林德","sector":"工业","weight":1.3,"change":0.82},{"ticker":"其他","name":"其他84只","sector":"","weight":21.84,"change":0.64}],"sectors":[{"name":"科技","weight":42.49,"change":-0.2,"count":41},{"name":"可选消费","weight":12.95,"change":0.29,"count":12},{"name":"通信服务","weight":12.04,"change":1.88,"count":8},{"name":"必需消费","weight":7.54,"change":1.74,"count":8},{"name":"工业","weight":3.11,"change":0.84,"count":14},{"name":"医疗保健","weight":2.95,"change":3.03,"count":9},{"name":"公用事业","weight":0.31,"change":-0.52,"count":4},{"name":"能源","weight":0.05,"change":-3.09,"count":2},{"name":"房地产","weight":0.04,"change":3.98,"count":1}],"bins":{"labels":["<-3%","-3~-2%","-2~-1%","-1~0%","0~1%","1~2%","2~3%",">3%"],"counts":[21,3,5,10,10,12,15,23]},"history":[30543.92,29968.13,29670.95,30406.19,30347.08,29347.27,29220.06,29440.32,29118.24,29774.75,30276.35,29809.13,29329.21,29697.87,29173.02,29252.56,29727.1,29825.11,29264.1,29586.29,29502.6,29025.77,28592.66,28604.23,29155.18,28998.1,28454.81,28128.34,28039.21,27763.13],"date":"2026-07-28","build_time":"2026-08-15 10:59:52"};
-  const HISTORY_DATES = ["2026-07-17", "2026-07-20", "2026-07-21", "2026-07-22", "2026-07-23", "2026-07-24", "2026-07-27", "2026-07-28", "2026-07-29", "2026-07-30", "2026-07-31", "2026-08-03", "2026-08-04", "2026-08-05", "2026-08-06", "2026-08-07", "2026-08-10", "2026-08-11", "2026-08-12", "2026-08-13", "2026-08-14"];
+  const DATA = {"index":{"price":27763.13,"prev_close":28039.21,"change":-0.98,"up":60,"down":41,"flat":0,"total":101},"stocks":[{"ticker":"NVDA","name":"NVIDIA Corporation Common Stock","sector":"科技","weight":12.96,"change":0.25},{"ticker":"AAPL","name":"Apple Inc. Common Stock","sector":"科技","weight":10.61,"change":0.94},{"ticker":"MSFT","name":"Microsoft Corporation Common Stock","sector":"科技","weight":8.74,"change":1.09},{"ticker":"AMZN","name":"Amazon.com, Inc. Common Stock","sector":"可选消费","weight":6.73,"change":-0.23},{"ticker":"GOOGL","name":"Alphabet Inc. Class A Common Stock","sector":"通信服务","weight":5.18,"change":2.19},{"ticker":"GOOG","name":"Alphabet Inc. Class C Capital Stock","sector":"通信服务","weight":4.84,"change":1.85},{"ticker":"AVGO","name":"Broadcom Inc. Common Stock","sector":"科技","weight":4.44,"change":-0.6},{"ticker":"SPCX","name":"Space Exploration Technologies Corp. Class A Common Stock","sector":"Industrials","weight":4.39,"change":2.56},{"ticker":"META","name":"Meta Platforms, Inc. Class A Common Stock","sector":"通信服务","weight":3.57,"change":-0.08},{"ticker":"MU","name":"Micron Technology, Inc. Common Stock","sector":"科技","weight":2.61,"change":-8.85},{"ticker":"WMT","name":"Walmart Inc. Common Stock","sector":"必需消费","weight":2.18,"change":1.22},{"ticker":"AMD","name":"Advanced Micro Devices, Inc. Common Stock","sector":"科技","weight":2.0,"change":-8.15},{"ticker":"ASML","name":"ASML Holding N.V. New York Registry Shares","sector":"科技","weight":1.68,"change":-4.24},{"ticker":"INTC","name":"Intel Corporation Common Stock","sector":"科技","weight":1.23,"change":-5.86},{"ticker":"CSCO","name":"Cisco Systems, Inc. Common Stock (DE)","sector":"科技","weight":1.05,"change":0.88},{"ticker":"COST","name":"Costco Wholesale Corporation Common Stock","sector":"必需消费","weight":1.01,"change":1.58},{"ticker":"LRCX","name":"Lam Research Corporation Common Stock","sector":"科技","weight":0.99,"change":-7.54},{"ticker":"PLTR","name":"Palantir Technologies Inc. Class A Common Stock","sector":"科技","weight":0.99,"change":-6.08},{"ticker":"AMAT","name":"Applied Materials, Inc. Common Stock","sector":"科技","weight":0.96,"change":-7.82},{"ticker":"NFLX","name":"Netflix, Inc. Common Stock","sector":"通信服务","weight":0.77,"change":2.83},{"ticker":"PANW","name":"Palo Alto Networks, Inc. Common Stock","sector":"科技","weight":0.74,"change":0.53},{"ticker":"ARM","name":"Arm Holdings plc American Depositary Shares","sector":"科技","weight":0.71,"change":-8.11},{"ticker":"KLAC","name":"KLA Corporation Common Stock","sector":"科技","weight":0.63,"change":-6.18},{"ticker":"TXN","name":"Texas Instruments Incorporated Common Stock","sector":"科技","weight":0.61,"change":-0.84},{"ticker":"SNDK","name":"Sandisk Corporation Common Stock","sector":"Technology","weight":0.57,"change":-14.25},{"ticker":"AMGN","name":"Amgen Inc. Common Stock","sector":"医疗保健","weight":0.53,"change":4.48},{"ticker":"CRWD","name":"CrowdStrike Holdings, Inc. Class A Common Stock","sector":"科技","weight":0.53,"change":0.94},{"ticker":"LIN","name":"Linde plc Ordinary Shares","sector":"工业","weight":0.53,"change":0.82},{"ticker":"STX","name":"Seagate Technology Holdings PLC Ordinary Shares (Ireland)","sector":"科技","weight":0.52,"change":-8.53},{"ticker":"MRVL","name":"Marvell Technology, Inc. Common Stock","sector":"科技","weight":0.47,"change":-7.77},{"ticker":"TMUS","name":"T-Mobile US, Inc. Common Stock","sector":"通信服务","weight":0.47,"change":2.92},{"ticker":"SHOP","name":"Shopify Inc. Class A Subordinate Voting Shares","sector":"可选消费","weight":0.47,"change":2.68},{"ticker":"PEP","name":"PepsiCo, Inc. Common Stock","sector":"必需消费","weight":0.46,"change":2.2},{"ticker":"ADI","name":"Analog Devices, Inc. Common Stock","sector":"科技","weight":0.45,"change":-1.63},{"ticker":"WDC","name":"Western Digital Corporation Common Stock","sector":"科技","weight":0.42,"change":-6.91},{"ticker":"QCOM","name":"QUALCOMM Incorporated Common Stock","sector":"科技","weight":0.41,"change":-4.21},{"ticker":"GILD","name":"Gilead Sciences, Inc. Common Stock","sector":"医疗保健","weight":0.41,"change":2.91},{"ticker":"BKNG","name":"Booking Holdings Inc. Common Stock","sector":"可选消费","weight":0.38,"change":6.7},{"ticker":"ISRG","name":"Intuitive Surgical, Inc. Common Stock","sector":"医疗保健","weight":0.33,"change":1.39},{"ticker":"VRTX","name":"Vertex Pharmaceuticals Incorporated Common Stock","sector":"医疗保健","weight":0.3,"change":2.38},{"ticker":"SBUX","name":"Starbucks Corporation Common Stock","sector":"可选消费","weight":0.29,"change":-0.53},{"ticker":"PDD","name":"PDD Holdings Inc. American Depositary Shares","sector":"可选消费","weight":0.29,"change":1.01},{"ticker":"FTNT","name":"Fortinet, Inc. Common Stock","sector":"科技","weight":0.28,"change":-1.58},{"ticker":"ADP","name":"Automatic Data Processing, Inc. Common Stock","sector":"科技","weight":0.26,"change":3.6},{"ticker":"ABNB","name":"Airbnb, Inc. Class A Common Stock","sector":"可选消费","weight":0.26,"change":4.26},{"ticker":"ADBE","name":"Adobe Inc. Common Stock","sector":"科技","weight":0.25,"change":4.81},{"ticker":"APP","name":"Applovin Corporation Class A Common Stock","sector":"科技","weight":0.25,"change":1.33},{"ticker":"CEG","name":"Constellation Energy Corporation Common Stock","sector":"公用事业","weight":0.24,"change":-3.77},{"ticker":"CMCSA","name":"Comcast Corporation Class A Common Stock","sector":"通信服务","weight":0.22,"change":6.1},{"ticker":"MNST","name":"Monster Beverage Corporation","sector":"必需消费","weight":0.22,"change":2.53},{"ticker":"INTU","name":"Intuit Inc. Common Stock","sector":"科技","weight":0.22,"change":2.99},{"ticker":"CSX","name":"CSX Corporation Common Stock","sector":"工业","weight":0.22,"change":-1.85},{"ticker":"MAR","name":"Marriott International Class A Common Stock","sector":"可选消费","weight":0.22,"change":0.12},{"ticker":"MELI","name":"MercadoLibre, Inc. Common Stock","sector":"可选消费","weight":0.22,"change":2.35},{"ticker":"DDOG","name":"Datadog, Inc. Class A Common Stock","sector":"科技","weight":0.22,"change":-0.39},{"ticker":"DASH","name":"DoorDash, Inc. Class A Common Stock","sector":"可选消费","weight":0.22,"change":6.05},{"ticker":"CDNS","name":"Cadence Design Systems, Inc. Common Stock","sector":"科技","weight":0.21,"change":1.8},{"ticker":"REGN","name":"Regeneron Pharmaceuticals, Inc. Common Stock","sector":"医疗保健","weight":0.2,"change":4.2},{"ticker":"LITE","name":"Lumentum Holdings Inc. Common Stock","sector":"Technology","weight":0.2,"change":-8.43},{"ticker":"CTAS","name":"Cintas Corporation Common Stock","sector":"工业","weight":0.19,"change":1.86},{"ticker":"ROST","name":"Ross Stores, Inc. Common Stock","sector":"可选消费","weight":0.19,"change":3.16},{"ticker":"SNPS","name":"Synopsys, Inc. Common Stock","sector":"科技","weight":0.19,"change":-1.33},{"ticker":"MDLZ","name":"Mondelez International, Inc. Class A Common Stock","sector":"必需消费","weight":0.19,"change":2.98},{"ticker":"ORLY","name":"O'Reilly Automotive, Inc. Common Stock","sector":"可选消费","weight":0.18,"change":0.64},{"ticker":"HON","name":"Honeywell International Inc. Common Stock","sector":"工业","weight":0.18,"change":0.53},{"ticker":"NBIS","name":"Nebius Group N.V. Class A Ordinary Shares","sector":"Communication Services","weight":0.18,"change":-9.68},{"ticker":"WBD","name":"Warner Bros. Discovery, Inc. Series A Common Stock","sector":"通信服务","weight":0.17,"change":1.31},{"ticker":"PCAR","name":"PACCAR Inc. Common Stock","sector":"工业","weight":0.16,"change":3.57},{"ticker":"AEP","name":"American Electric Power Company, Inc. Common Stock","sector":"公用事业","weight":0.16,"change":-0.43},{"ticker":"TER","name":"Teradyne, Inc. Common Stock","sector":"科技","weight":0.16,"change":-4.22},{"ticker":"MPWR","name":"Monolithic Power Systems, Inc. Common Stock","sector":"科技","weight":0.16,"change":-4.26},{"ticker":"BKR","name":"Baker Hughes Company Class A Common Stock","sector":"能源","weight":0.15,"change":-3.52},{"ticker":"FAST","name":"Fastenal Company Common Stock","sector":"工业","weight":0.14,"change":1.52},{"ticker":"NXPI","name":"NXP Semiconductors N.V. Common Stock","sector":"科技","weight":0.14,"change":-3.19},{"ticker":"CRWV","name":"CoreWeave, Inc. Class A Common Stock","sector":"科技","weight":0.14,"change":-4.93},{"ticker":"ADSK","name":"Autodesk, Inc. Common Stock","sector":"Technology","weight":0.13,"change":5.08},{"ticker":"FANG","name":"Diamondback Energy, Inc. Common Stock","sector":"能源","weight":0.13,"change":-2.8},{"ticker":"PYPL","name":"PayPal Holdings, Inc. Common Stock","sector":"科技","weight":0.13,"change":4.01},{"ticker":"ALAB","name":"Astera Labs, Inc. Common Stock","sector":"科技","weight":0.13,"change":-7.89},{"ticker":"HONA","name":"Honeywell Aerospace Inc. Common Stock","sector":"Industrials","weight":0.13,"change":2.4},{"ticker":"XEL","name":"Xcel Energy Inc. Common Stock","sector":"公用事业","weight":0.12,"change":-0.47},{"ticker":"AXON","name":"Axon Enterprise, Inc. Common Stock","sector":"工业","weight":0.12,"change":4.22},{"ticker":"WDAY","name":"Workday, Inc. Class A Common Stock","sector":"科技","weight":0.12,"change":8.24},{"ticker":"RKLB","name":"Rocket Lab Corporation Common Stock","sector":"工业","weight":0.12,"change":-4.56},{"ticker":"TTWO","name":"Take-Two Interactive Software, Inc. Common Stock","sector":"通信服务","weight":0.11,"change":1.5},{"ticker":"EXC","name":"Exelon Corporation Common Stock","sector":"公用事业","weight":0.11,"change":0.34},{"ticker":"CCEP","name":"Coca-Cola Europacific Partners plc Ordinary Shares","sector":"必需消费","weight":0.11,"change":2.53},{"ticker":"TRI","name":"Thomson Reuters Corporation Common Shares","sector":"工业","weight":0.11,"change":5.66},{"ticker":"FER","name":"Ferrovial N.V. Ordinary Shares","sector":"工业","weight":0.11,"change":-1.73},{"ticker":"PAYX","name":"Paychex, Inc. Common Stock","sector":"科技","weight":0.1,"change":4.01},{"ticker":"IDXX","name":"IDEXX Laboratories, Inc. Common Stock","sector":"医疗保健","weight":0.1,"change":2.4},{"ticker":"ODFL","name":"Old Dominion Freight Line, Inc. Common Stock","sector":"工业","weight":0.1,"change":-0.22},{"ticker":"MCHP","name":"Microchip Technology Incorporated Common Stock","sector":"科技","weight":0.1,"change":-2.81},{"ticker":"KDP","name":"Keurig Dr Pepper Inc. Common Stock","sector":"必需消费","weight":0.1,"change":3.19},{"ticker":"MSTR","name":"Strategy Inc Common Stock Class A","sector":"科技","weight":0.09,"change":-2.52},{"ticker":"ROP","name":"Roper Technologies, Inc. Common Stock","sector":"工业","weight":0.09,"change":4.24},{"ticker":"DXCM","name":"DexCom, Inc. Common Stock","sector":"医疗保健","weight":0.08,"change":2.02},{"ticker":"GEHC","name":"GE HealthCare Technologies Inc. Common Stock","sector":"医疗保健","weight":0.08,"change":4.89},{"ticker":"CPRT","name":"Copart, Inc. (DE) Common Stock","sector":"工业","weight":0.07,"change":3.02},{"ticker":"ALNY","name":"Alnylam Pharmaceuticals, Inc. Common Stock","sector":"医疗保健","weight":0.07,"change":3.6},{"ticker":"KHC","name":"The Kraft Heinz Company Common Stock","sector":"必需消费","weight":0.07,"change":4.12}],"pie_stocks":[{"ticker":"NVDA","name":"NVIDIA Corporation Common Stock","sector":"科技","weight":12.96,"change":0.25},{"ticker":"AAPL","name":"Apple Inc. Common Stock","sector":"科技","weight":10.61,"change":0.94},{"ticker":"MSFT","name":"Microsoft Corporation Common Stock","sector":"科技","weight":8.74,"change":1.09},{"ticker":"AMZN","name":"Amazon.com, Inc. Common Stock","sector":"可选消费","weight":6.73,"change":-0.23},{"ticker":"GOOGL","name":"Alphabet Inc. Class A Common Stock","sector":"通信服务","weight":5.18,"change":2.19},{"ticker":"GOOG","name":"Alphabet Inc. Class C Capital Stock","sector":"通信服务","weight":4.84,"change":1.85},{"ticker":"AVGO","name":"Broadcom Inc. Common Stock","sector":"科技","weight":4.44,"change":-0.6},{"ticker":"SPCX","name":"Space Exploration Technologies Corp. Class A Common Stock","sector":"Industrials","weight":4.39,"change":2.56},{"ticker":"META","name":"Meta Platforms, Inc. Class A Common Stock","sector":"通信服务","weight":3.57,"change":-0.08},{"ticker":"MU","name":"Micron Technology, Inc. Common Stock","sector":"科技","weight":2.61,"change":-8.85},{"ticker":"WMT","name":"Walmart Inc. Common Stock","sector":"必需消费","weight":2.18,"change":1.22},{"ticker":"AMD","name":"Advanced Micro Devices, Inc. Common Stock","sector":"科技","weight":2.0,"change":-8.15},{"ticker":"ASML","name":"ASML Holding N.V. New York Registry Shares","sector":"科技","weight":1.68,"change":-4.24},{"ticker":"INTC","name":"Intel Corporation Common Stock","sector":"科技","weight":1.23,"change":-5.86},{"ticker":"CSCO","name":"Cisco Systems, Inc. Common Stock (DE)","sector":"科技","weight":1.05,"change":0.88},{"ticker":"其他","name":"其他86只","sector":"","weight":24.56,"change":-1.19}],"sectors":[{"name":"科技","weight":56.9,"change":-1.33,"count":40},{"name":"通信服务","weight":15.33,"change":1.65,"count":8},{"name":"可选消费","weight":9.45,"change":0.64,"count":11},{"name":"Industrials","weight":4.52,"change":2.56,"count":2},{"name":"必需消费","weight":4.34,"change":1.68,"count":8},{"name":"工业","weight":2.14,"change":1.04,"count":13},{"name":"医疗保健","weight":2.1,"change":3.15,"count":9},{"name":"Technology","weight":0.9,"change":-10.16,"count":3},{"name":"公用事业","weight":0.63,"change":-1.58,"count":4},{"name":"能源","weight":0.28,"change":-3.19,"count":2},{"name":"Communication Services","weight":0.18,"change":-9.68,"count":1}],"bins":{"labels":["<-3%","-3~-2%","-2~-1%","-1~0%","0~1%","1~2%","2~3%",">3%"],"counts":[24,3,5,9,10,12,16,22]},"history":[30543.92,29968.13,29670.95,30406.19,30347.08,29347.27,29220.06,29440.32,29118.24,29774.75,30276.35,29809.13,29329.21,29697.87,29173.02,29252.56,29727.1,29825.11,29264.1,29586.29,29502.6,29025.77,28592.66,28604.23,29155.18,28998.1,28454.81,28128.34,28039.21,27763.13],"date":"2026-07-28","theme_css":":root {\n  --color-rise: #7FFF00;\n  --color-fall: #8B00FF;\n  --color-rise-bg: rgba(127,255,0,0.12);\n  --color-fall-bg: rgba(139,0,255,0.12);\n  --glitch-color1: #7FFF00;\n  --glitch-color2: #8B00FF;\n  --shadow-rise: 0 0 30px rgba(127,255,0,0.25);\n  --shadow-fall: 0 0 30px rgba(139,0,255,0.25);\n  --glow-rise: rgba(127,255,0,0.25);\n  --glow-fall: rgba(139,0,255,0.25);\n  --badge-border: rgba(127,255,0,0.3);\n}\n\nhtml.light {\n  --color-rise: #b2ff65;\n  --color-fall: #b965ff;\n  --color-rise-bg: rgba(178,255,101,0.12);\n  --color-fall-bg: rgba(185,101,255,0.12);\n  --glitch-color1: #b2ff65;\n  --glitch-color2: #b965ff;\n  --shadow-rise: 0 0 30px rgba(178,255,101,0.25);\n  --shadow-fall: 0 0 30px rgba(185,101,255,0.25);\n  --glow-rise: rgba(178,255,101,0.25);\n  --glow-fall: rgba(185,101,255,0.25);\n  --badge-border: rgba(178,255,101,0.3);\n}\n","theme_idx":11,"build_time":"2026-08-16 09:19:20"};
+  const HISTORY_DATES = ["2026-07-20", "2026-07-21", "2026-07-22", "2026-07-23", "2026-07-24", "2026-07-27", "2026-07-28", "2026-07-29", "2026-07-30", "2026-07-31", "2026-08-03", "2026-08-04", "2026-08-05", "2026-08-06", "2026-08-07", "2026-08-10", "2026-08-11", "2026-08-12", "2026-08-13", "2026-08-14"];
   const IS_HISTORY = true;
 
   const idx = DATA.index;
@@ -554,28 +570,178 @@
   function cls(c) { return c >= 0 ? "up" : "down"; }
 
   // ==============================================================
-  // 主题切换
+  // Glitch 音效引擎 (Web Audio API)
+  // ==============================================================
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  let audioCtx = null;
+  let isMuted = false;
+  let audioReady = false;
+
+  const muteState = localStorage.getItem('ndxMuted');
+  if (muteState === 'true') {
+    isMuted = true;
+  }
+
+  function initAudio() {
+    if (!audioCtx) {
+      audioCtx = new AudioCtx();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume().then(() => {
+        audioReady = true;
+        console.log('🎵 音频已激活');
+      }).catch(e => console.warn('音频激活失败', e));
+    } else {
+      audioReady = true;
+    }
+  }
+
+  function activateAudioOnFirstClick() {
+    if (audioReady) return;
+    const handler = function() {
+      initAudio();
+      if (!isMuted) {
+        try {
+          const now = audioCtx.currentTime;
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(800, now);
+          gain.gain.setValueAtTime(0.02, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.05);
+        } catch(e) {}
+      }
+      document.removeEventListener('click', handler);
+    };
+    document.addEventListener('click', handler);
+  }
+
+  function playGlitchSound(type) {
+    if (isMuted) return;
+    if (!audioReady) {
+      initAudio();
+      if (!audioReady) return;
+    }
+    try {
+      const now = audioCtx.currentTime;
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+        return;
+      }
+      if (type === 'burst') {
+        const bufferSize = audioCtx.sampleRate * 0.08;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = (Math.random() * 2 - 1) * Math.pow(Math.random(), 3);
+        }
+        const source = audioCtx.createBufferSource();
+        source.buffer = buffer;
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        source.connect(gain);
+        gain.connect(audioCtx.destination);
+        source.start(now);
+        source.stop(now + 0.08);
+      }
+      if (type === 'scratch') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const freq = 800 + Math.random() * 1200;
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(freq, now);
+        osc.frequency.exponentialRampToValueAtTime(freq * 2.5, now + 0.06);
+        gain.gain.setValueAtTime(0.06, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.06);
+      }
+      if (type === 'switch') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.exponentialRampToValueAtTime(900, now + 0.04);
+        gain.gain.setValueAtTime(0.04, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.04);
+      }
+    } catch (e) {}
+  }
+
+  const muteBtn = document.getElementById('muteBtn');
+  if (muteBtn) {
+    muteBtn.textContent = isMuted ? '静音' : '音效';
+    muteBtn.addEventListener('click', function() {
+      isMuted = !isMuted;
+      localStorage.setItem('ndxMuted', isMuted ? 'true' : 'false');
+      muteBtn.textContent = isMuted ? '静音' : '音效';
+      if (!isMuted) {
+        initAudio();
+        playGlitchSound('switch');
+      }
+    });
+  }
+
+  activateAudioOnFirstClick();
+
+  // ==============================================================
+  // 主题切换（自动跟随系统 + 手动覆盖）
   // ==============================================================
   const toggleBtn = document.getElementById('themeToggle');
   const htmlEl = document.documentElement;
+
+  const systemPrefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
   const storedTheme = localStorage.getItem('ndxTheme');
-  if (storedTheme === 'light') {
+
+  let useLight = false;
+  if (storedTheme !== null) {
+    useLight = (storedTheme === 'light');
+  } else {
+    useLight = systemPrefersLight;
+  }
+
+  if (useLight) {
     htmlEl.classList.add('light');
     toggleBtn.textContent = '夜间';
   } else {
+    htmlEl.classList.remove('light');
     toggleBtn.textContent = '日间';
   }
+
   toggleBtn.addEventListener('click', () => {
-    htmlEl.classList.toggle('light');
-    const isLight = htmlEl.classList.contains('light');
+    const isLight = htmlEl.classList.toggle('light');
     localStorage.setItem('ndxTheme', isLight ? 'light' : 'dark');
     toggleBtn.textContent = isLight ? '夜间' : '日间';
+    playGlitchSound('switch');
+  });
+
+  const mediaQuery = window.matchMedia('(prefers-color-scheme: light)');
+  mediaQuery.addEventListener('change', (e) => {
+    if (localStorage.getItem('ndxTheme') === null) {
+      if (e.matches) {
+        htmlEl.classList.add('light');
+        toggleBtn.textContent = '夜间';
+      } else {
+        htmlEl.classList.remove('light');
+        toggleBtn.textContent = '日间';
+      }
+    }
   });
 
   // ==============================================================
   // 渲染主数据
   // ==============================================================
-  // 顶部 Sticky
   document.getElementById('stickyPrice').textContent = idx.price ? idx.price.toLocaleString() : '--';
   document.getElementById('stickyChange').textContent = fmtPct(idx.change);
   document.getElementById('stickyChange').className = 'change ' + cls(idx.change) + ' glitch-text';
@@ -584,13 +750,11 @@
   document.getElementById('stickyTrend').textContent = fmtPct(idx.change);
   document.getElementById('stickyDate').textContent = DATA.date;
 
-  // 主价格
   document.getElementById('mainPrice').textContent = idx.price ? idx.price.toLocaleString() : '--';
   document.getElementById('mainChange').textContent = fmtPct(idx.change);
   document.getElementById('mainChange').className = 'price-change ' + cls(idx.change) + ' glitch-text';
   document.getElementById('prevClose').textContent = idx.prev_close ? idx.prev_close.toLocaleString() : '--';
 
-  // 高/低（从历史数据取）
   if (history && history.length > 0) {
     const high = Math.max(...history);
     const low = Math.min(...history);
@@ -598,14 +762,12 @@
     document.getElementById('lowPrice').textContent = low.toLocaleString();
   }
 
-  // KPI
   document.getElementById('kpiUp').textContent = idx.up;
   document.getElementById('kpiDown').textContent = idx.down;
   const trend30 = history.length >= 2 ? ((history[history.length-1] - history[0]) / history[0] * 100) : 0;
   document.getElementById('kpiTrend').textContent = (trend30 >= 0 ? "+" : "") + trend30.toFixed(2) + "%";
   document.getElementById('kpiTrend').className = 'number ' + cls(trend30) + ' glitch-text';
 
-  // 涨跌分布
   const bins = DATA.bins;
   const labels = bins.labels;
   const counts = bins.counts;
@@ -621,7 +783,6 @@
   document.getElementById('distDown').textContent = idx.down;
   document.getElementById('distFlat').textContent = idx.flat || 0;
 
-  // 权重列表 (Top 10)
   const flowList = document.getElementById('flowList');
   const topStocks = stocks.slice().sort((a, b) => b.weight - a.weight).slice(0, 10);
   topStocks.forEach(s => {
@@ -639,13 +800,11 @@
     `;
     flowList.appendChild(row);
   });
-  // 其他汇总
   const othersRow = document.createElement('div');
   othersRow.className = 'flow-row others';
   othersRow.textContent = '其他 ' + (stocks.length - 10) + ' 只 · 合计权重 ' + (100 - topStocks.reduce((a,b) => a + b.weight, 0)).toFixed(1) + '%';
   flowList.appendChild(othersRow);
 
-  // 领涨/领跌
   const sorted = stocks.slice().sort((a, b) => b.change - a.change);
   const top5 = sorted.slice(0, 5);
   const bottom5 = sorted.slice(-5).reverse();
@@ -656,7 +815,7 @@
   top5.forEach(s => {
     const item = document.createElement('div');
     item.className = 'leader-item';
-    item.innerHTML = `<span class="glitch-text">${s.ticker}</span><span class="val glitch-text" style="color:var(--color-rise);">${fmtPct(s.change)}</span>`;
+    item.innerHTML = `<span class="glitch-text" title="${s.name}">${s.ticker}</span><span class="val glitch-text" style="color:var(--color-rise);">${fmtPct(s.change)}</span>`;
     col1.appendChild(item);
   });
   const col2 = document.createElement('div');
@@ -665,13 +824,12 @@
   bottom5.forEach(s => {
     const item = document.createElement('div');
     item.className = 'leader-item';
-    item.innerHTML = `<span class="glitch-text">${s.ticker}</span><span class="val glitch-text" style="color:var(--color-fall);">${fmtPct(s.change)}</span>`;
+    item.innerHTML = `<span class="glitch-text" title="${s.name}">${s.ticker}</span><span class="val glitch-text" style="color:var(--color-fall);">${fmtPct(s.change)}</span>`;
     col2.appendChild(item);
   });
   leaderGrid.appendChild(col1);
   leaderGrid.appendChild(col2);
 
-  // 30日趋势
   if (history.length >= 2) {
     const change30 = (history[history.length-1] - history[0]) / history[0] * 100;
     const high = Math.max(...history);
@@ -683,7 +841,6 @@
     document.getElementById('trendLow').textContent = low.toLocaleString();
     document.getElementById('trendLatest').textContent = latest.toLocaleString();
 
-    // 近5日
     const mini = document.getElementById('miniPrices');
     mini.innerHTML = '<span>近5日</span>';
     const last5 = history.slice(-5);
@@ -696,13 +853,10 @@
     });
   }
 
-  // ==============================================================
-  // 构建时间
-  // ==============================================================
   document.getElementById('buildTime').textContent = new Date().toLocaleString('zh-CN');
 
   // ==============================================================
-  // 滚动行情数据（从真实数据生成）
+  // 滚动行情数据
   // ==============================================================
   function buildTickerHTML(data) {
     let html = '';
@@ -720,7 +874,6 @@
   document.getElementById('tickerTopInner').innerHTML = buildTickerHTML(stocks);
   document.getElementById('tickerBottomTrack').innerHTML = buildTickerHTML(stocks);
 
-  // 悬停暂停
   const topTrack = document.querySelector('.sticky-top .track-inner');
   const bottomTrack = document.querySelector('.sticky-bottom .ticker-track');
   [topTrack, bottomTrack].forEach(track => {
@@ -737,6 +890,7 @@
 
   function triggerGlitch(el) {
     if (!el) return;
+    playGlitchSound('burst');
     el.classList.remove('active');
     void el.offsetWidth;
     el.classList.add('active');
@@ -757,6 +911,7 @@
       if (!originalTexts.has(target)) {
         originalTexts.set(target, target.textContent);
       }
+      playGlitchSound('scratch');
       target.textContent = '$';
       target.style.color = 'var(--color-rise)';
       triggerGlitch(target);
@@ -769,6 +924,7 @@
       if (!originalTexts.has(el)) {
         originalTexts.set(el, el.textContent);
       }
+      playGlitchSound('scratch');
       el.textContent = '$';
       el.style.color = 'var(--color-rise)';
       triggerGlitch(el);
@@ -821,6 +977,7 @@
     if (switching || !stickyPrice) return;
     switching = true;
 
+    playGlitchSound('switch');
     triggerGlitch(stickyPrice);
     if (stickyChange) {
       setTimeout(() => triggerGlitch(stickyChange), 50);
@@ -849,7 +1006,7 @@
   }, 1800);
 
   // ==============================================================
-  // 导航（前一日/后一日/今天）- 完全基于 HISTORY_DATES
+  // 导航
   // ==============================================================
   (function() {
     const btnPrev = document.getElementById('btnPrev');
@@ -875,7 +1032,6 @@
       if (btnToday) btnToday.style.display = 'none';
     }
 
-    // 如果没有历史日期，禁用所有按钮
     if (!HISTORY_DATES || HISTORY_DATES.length === 0) {
       btnPrev.disabled = true;
       btnNext.disabled = true;
@@ -889,7 +1045,6 @@
       return;
     }
 
-    // 前一日
     if (idx2 > 0) {
       const prevDate = HISTORY_DATES[idx2 - 1];
       btnPrev.disabled = false;
@@ -900,7 +1055,6 @@
       btnPrev.disabled = true;
     }
 
-    // 后一日
     if (idx2 < HISTORY_DATES.length - 1) {
       const nextDate = HISTORY_DATES[idx2 + 1];
       btnNext.disabled = false;
@@ -918,7 +1072,7 @@
     }
   })();
 
-  console.log('✦ Glitch 风格 · 数据已注入 · 导航已启用 ✦');
+  console.log('✦ Glitch 风格 · 音效已加载 ✦');
 </script>
 </body>
 </html>
