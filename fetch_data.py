@@ -633,7 +633,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       display:flex; justify-content:space-between; padding:0.3vw 0;
       font-size:clamp(18px,2.6vw,32px); font-weight:800;
       border-bottom:1px solid var(--border-color);
-      cursor:default;
     }
     .leader-item .val { font-weight:900; }
 
@@ -827,8 +826,9 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
   let audioCtx = null;
   let isMuted = false;
-  let audioReady = false;
+  let audioReady = false;  // 标记音频是否已激活
 
+  // 读取静音状态
   const muteState = localStorage.getItem('ndxMuted');
   if (muteState === 'true') {
     isMuted = true;
@@ -848,10 +848,12 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     }
   }
 
+  // 页面加载后绑定一次点击事件，用于激活音频
   function activateAudioOnFirstClick() {
     if (audioReady) return;
     const handler = function() {
       initAudio();
+      // 播放一个极短提示音（可选）
       if (!isMuted) {
         try {
           const now = audioCtx.currentTime;
@@ -872,10 +874,13 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     document.addEventListener('click', handler);
   }
 
+  // 播放故障音效
   function playGlitchSound(type) {
     if (isMuted) return;
+    // 如果音频还没激活，尝试激活
     if (!audioReady) {
       initAudio();
+      // 如果激活后仍然不可用，则放弃本次播放
       if (!audioReady) return;
     }
     try {
@@ -931,6 +936,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     } catch (e) {}
   }
 
+  // 静音切换（纯汉字）
   const muteBtn = document.getElementById('muteBtn');
   if (muteBtn) {
     muteBtn.textContent = isMuted ? '静音' : '音效';
@@ -939,15 +945,19 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       localStorage.setItem('ndxMuted', isMuted ? 'true' : 'false');
       muteBtn.textContent = isMuted ? '静音' : '音效';
       if (!isMuted) {
+        // 激活音频并播放一个提示音
         initAudio();
         if (!audioReady) {
+          // 如果尚未激活，尝试用点击激活
           audioReady = true;
+          // 直接播放一个短音
         }
         playGlitchSound('switch');
       }
     });
   }
 
+  // 页面加载后绑定激活监听器
   activateAudioOnFirstClick();
 
   // ==============================================================
@@ -1063,59 +1073,28 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   const sorted = stocks.slice().sort((a, b) => b.change - a.change);
   const top5 = sorted.slice(0, 5);
   const bottom5 = sorted.slice(-5).reverse();
-
-  // ===== 领涨/领跌（增加公司名称悬浮提示） =====
   const leaderGrid = document.getElementById('leaderGrid');
-
   const col1 = document.createElement('div');
   col1.className = 'leader-col';
   col1.innerHTML = '<div class="col-title" style="color:var(--color-rise);">▲ 领涨</div>';
   top5.forEach(s => {
     const item = document.createElement('div');
     item.className = 'leader-item';
-    const tickerSpan = document.createElement('span');
-    tickerSpan.className = 'glitch-text';
-    tickerSpan.textContent = s.ticker;
-    const valSpan = document.createElement('span');
-    valSpan.className = 'val glitch-text';
-    valSpan.style.color = 'var(--color-rise)';
-    valSpan.textContent = fmtPct(s.change);
-    item.appendChild(tickerSpan);
-    item.appendChild(valSpan);
-    // 鼠标悬浮显示公司名称
-    item.addEventListener('mouseenter', function(e) {
-      showTip(e, `${s.ticker} ${s.name}`);
-    });
-    item.addEventListener('mouseleave', hideTip);
+    item.innerHTML = `<span class="glitch-text">${s.ticker}</span><span class="val glitch-text" style="color:var(--color-rise);">${fmtPct(s.change)}</span>`;
     col1.appendChild(item);
   });
-
   const col2 = document.createElement('div');
   col2.className = 'leader-col';
   col2.innerHTML = '<div class="col-title" style="color:var(--color-fall);">▼ 领跌</div>';
   bottom5.forEach(s => {
     const item = document.createElement('div');
     item.className = 'leader-item';
-    const tickerSpan = document.createElement('span');
-    tickerSpan.className = 'glitch-text';
-    tickerSpan.textContent = s.ticker;
-    const valSpan = document.createElement('span');
-    valSpan.className = 'val glitch-text';
-    valSpan.style.color = 'var(--color-fall)';
-    valSpan.textContent = fmtPct(s.change);
-    item.appendChild(tickerSpan);
-    item.appendChild(valSpan);
-    item.addEventListener('mouseenter', function(e) {
-      showTip(e, `${s.ticker} ${s.name}`);
-    });
-    item.addEventListener('mouseleave', hideTip);
+    item.innerHTML = `<span class="glitch-text">${s.ticker}</span><span class="val glitch-text" style="color:var(--color-fall);">${fmtPct(s.change)}</span>`;
     col2.appendChild(item);
   });
-
   leaderGrid.appendChild(col1);
   leaderGrid.appendChild(col2);
 
-  // 30日趋势
   if (history.length >= 2) {
     const change30 = (history[history.length-1] - history[0]) / history[0] * 100;
     const high = Math.max(...history);
@@ -1358,56 +1337,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     }
   })();
 
-  // ==============================================================
-  // Tooltip（已存在，但确保函数可用）
-  // ==============================================================
-  const tip = document.getElementById('tooltip');
-  if (!tip) {
-    // 如果页面没有 tooltip 元素，创建一个（实际上HTML中已存在）
-    const newTip = document.createElement('div');
-    newTip.id = 'tooltip';
-    newTip.className = 'tooltip';
-    document.body.appendChild(newTip);
-  }
-function showTip(e, html) {
-  const tipEl = document.getElementById('tooltip');
-  if (!tipEl) return;
-  
-  tipEl.innerHTML = html;
-  tipEl.style.opacity = '1';
-  
-  // 获取鼠标位置（兼容不同事件对象）
-  const clientX = e.clientX || e.pageX || 0;
-  const clientY = e.clientY || e.pageY || 0;
-  
-  // 获取提示框尺寸，如果为 0 则使用默认值
-  let tw = tipEl.offsetWidth || 140;
-  let th = tipEl.offsetHeight || 36;
-  
-  // 计算位置：默认在鼠标上方居中
-  let left = clientX - tw / 2;
-  let top = clientY - th - 12;
-  
-  // 边界保护（防止超出屏幕）
-  const padding = 10;
-  if (left < padding) left = padding;
-  if (left + tw > window.innerWidth - padding) {
-    left = window.innerWidth - tw - padding;
-  }
-  if (top < padding) {
-    // 如果上方放不下，显示在鼠标下方
-    top = clientY + 12;
-  }
-  
-  // 确保是数字
-  if (isNaN(left)) left = padding;
-  if (isNaN(top)) top = padding;
-  
-  tipEl.style.left = left + 'px';
-  tipEl.style.top = top + 'px';
-}
-
-  console.log('✦ Glitch 风格 · 音效已加载 · 领涨领跌悬浮提示已启用 ✦');
+  console.log('✦ Glitch 风格 · 音效已加载 ✦');
 </script>
 </body>
 </html>
