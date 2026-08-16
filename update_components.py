@@ -2,19 +2,21 @@
 # -*- coding: utf-8 -*-
 
 """
-Nasdaq-100 Auto Updater (Tiingo + Nasdaq)
-=========================================
+Nasdaq-100 Auto Updater (Tiingo + Yahoo fallback)
+=================================================
 
 Data sources:
 - Nasdaq API: current Nasdaq-100 constituents
-- Tiingo API: QQQ holdings weights (full list, no compression)
+- Tiingo API (primary): QQQ holdings weights via /etf/holdings endpoint
+- Yahoo Finance (fallback): if Tiingo fails
+- Yahoo Finance (sector supplement): for missing sectors
 
 Features:
-- Auto-add new constituents
-- Auto-remove deleted constituents
-- Auto-backup old file
-- Data validation before overwrite
+- Auto-add/remove constituents
+- Auto-backup
+- Data validation (with reasonable thresholds)
 - Full logging
+- Sector auto-fill via Yahoo batch API
 """
 
 import os
@@ -22,6 +24,7 @@ import re
 import json
 import shutil
 import logging
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -39,8 +42,9 @@ BACKUP_DIR = BASE_DIR / "backup_ndx"
 LOG_FILE = BASE_DIR / "update_ndx.log"
 
 NASDAQ_URL = "https://api.nasdaq.com/api/quote/list-type/nasdaq100"
-
-TIINGO_URL = "https://api.tiingo.com/tiingo/etf/QQQ/holdings"
+TIINGO_HOLDINGS_URL = "https://api.tiingo.com/tiingo/etf/holdings?tickers=QQQ"
+YAHOO_HOLDINGS_URL = "https://query1.finance.yahoo.com/v10/finance/quoteSummary/QQQ?modules=topHoldings"
+YAHOO_QUOTE_URL = "https://query1.finance.yahoo.com/v7/finance/quote"
 
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -115,8 +119,11 @@ def normalize_sector(sector):
         "Energy": "Energy",
         "Basic Materials": "Basic Materials",
         "Real Estate": "Real Estate",
+        "Financials": "Financials",
+        "Communication Services": "Communication Services",
     }
-    return mapping.get(sector.strip(), sector.strip())
+    normalized = sector.strip()
+    return mapping.get(normalized, normalized)
 
 
 # ============================================================
@@ -154,7 +161,7 @@ def parse_old_components():
 
 
 # ============================================================
-# Fetch Nasdaq constituents (fix: data.data.rows)
+# Fetch Nasdaq constituents
 # ============================================================
 
 def fetch_nasdaq_constituents():
@@ -165,8 +172,15 @@ def fetch_nasdaq_constituents():
         response.raise_for_status()
         data = response.json()
 
-        # CORRECT PATH: data.data.rows (not data.data)
-        rows = data.get("data", {}).get("data", {}).get("rows", [])
+        # 兼容 Nasdaq API 可能的多种响应结构
+        rows = None
+        if "data" in data:
+            if isinstance(data["data"], dict) and "data" in data["data"]:
+                rows = data["data"]["data"].get("rows", [])
+            elif isinstance(data["data"], list):
+                rows = data["data"]
+            else:
+                rows = data["data"].get("rows", [])
 
         if not rows:
             raise RuntimeError("Nasdaq returned empty data")
@@ -174,7 +188,7 @@ def fetch_nasdaq_constituents():
         result = {}
         for row in rows:
             ticker = clean_ticker(row.get("symbol"))
-            name = clean_name(row.get("companyName"))
+            name = clean_name(row.get("companyName") or row.get("name"))
             if not ticker:
                 continue
             result[ticker] = {"name": name, "sector": "Unknown"}
@@ -191,7 +205,7 @@ def fetch_nasdaq_constituents():
 
 
 # ============================================================
-# Fetch Tiingo QQQ weights (full list)
+# Fetch Tiingo weights
 # ============================================================
 
 def fetch_tiingo_weights(api_key):
@@ -202,31 +216,49 @@ def fetch_tiingo_weights(api_key):
     logging.info("Fetching QQQ weights from Tiingo API...")
 
     try:
-        url = f"{TIINGO_URL}?token={api_key}"
-        response = requests.get(url, timeout=30)
+        headers = {
+            "Authorization": f"Token {api_key}",
+            "User-Agent": USER_AGENT,
+            "Accept": "application/json",
+        }
+
+        response = requests.get(TIINGO_HOLDINGS_URL, headers=headers, timeout=30)
+        
+        # 增强错误处理：明确提示权限问题
+        if response.status_code in (401, 403):
+            logging.error(
+                "Tiingo API returned %d. ETF Holdings endpoint may require a paid subscription. "
+                "Please check your API key tier at https://www.tiingo.com/account/billing",
+                response.status_code
+            )
+            return {}
+        
         response.raise_for_status()
         data = response.json()
 
-        if not data or not isinstance(data, list):
-            raise RuntimeError("Tiingo returned empty or invalid data")
+        holdings = None
+        if isinstance(data, list):
+            for item in data:
+                if item.get("ticker") == "QQQ":
+                    holdings = item.get("holdings", [])
+                    break
+        elif isinstance(data, dict):
+            holdings = data.get("holdings", [])
+
+        if not holdings:
+            raise RuntimeError("QQQ holdings not found in Tiingo response")
 
         weights = {}
-        for item in data:
-            ticker = clean_ticker(item.get("symbol"))
-            raw_weight = item.get("holdingPercent")
-
-            if not ticker or raw_weight is None:
-                continue
-
-            try:
-                weight = float(raw_weight) * 100  # Convert to percentage
-            except (ValueError, TypeError):
-                continue
-
-            if weight <= 0 or weight > 20:
-                continue
-
-            weights[ticker] = round(weight, 2)
+        for h in holdings:
+            ticker = clean_ticker(h.get("symbol"))
+            raw_weight = h.get("holdingPercent")
+            if ticker and raw_weight is not None:
+                try:
+                    weight = float(raw_weight) * 100
+                    if weight > 0.01:
+                        weights[ticker] = round(weight, 2)
+                except (ValueError, TypeError):
+                    continue
 
         if len(weights) < 80:
             raise RuntimeError(f"Tiingo returned only {len(weights)} weights (expected 80+)")
@@ -234,9 +266,114 @@ def fetch_tiingo_weights(api_key):
         logging.info("Tiingo: %d weights", len(weights))
         return weights
 
+    except requests.exceptions.RequestException as e:
+        logging.error("Tiingo request failed: %s", e)
+        return {}
     except Exception as e:
         logging.exception("Tiingo fetch failed: %s", e)
         return {}
+
+
+# ============================================================
+# Fallback: Yahoo Finance (topHoldings)
+# ============================================================
+
+def fetch_yahoo_weights():
+    logging.info("Falling back to Yahoo Finance for QQQ weights...")
+
+    try:
+        response = session.get(YAHOO_HOLDINGS_URL, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+
+        result = data.get("quoteSummary", {}).get("result", [])
+        if not result:
+            raise RuntimeError("Yahoo quoteSummary returned empty")
+
+        # 修复：使用 topHoldings 而非 etfHoldings
+        top_holdings = result[0].get("topHoldings", {})
+        holdings = top_holdings.get("holdings", [])
+        
+        if not holdings:
+            raise RuntimeError("Yahoo topHoldings returned empty")
+
+        weights = {}
+        for item in holdings:
+            ticker = clean_ticker(item.get("symbol"))
+            raw_weight = item.get("holdingPercent")
+            if not ticker or raw_weight is None:
+                continue
+            try:
+                weight = float(raw_weight) * 100
+            except (ValueError, TypeError):
+                continue
+            if weight <= 0 or weight > 25:  # 放宽异常阈值
+                continue
+            weights[ticker] = round(weight, 2)
+
+        if len(weights) < 80:
+            raise RuntimeError(f"Yahoo returned only {len(weights)} weights (expected 80+)")
+
+        logging.info("Yahoo (fallback): %d weights", len(weights))
+        return weights
+
+    except Exception as e:
+        logging.exception("Yahoo fallback failed: %s", e)
+        return {}
+
+
+# ============================================================
+# Yahoo Finance: batch sector lookup
+# ============================================================
+
+def fetch_yahoo_sectors(tickers, batch_size=50):
+    """从 Yahoo Finance v7/quote 批量获取股票 sector"""
+    if not tickers:
+        return {}
+
+    logging.info("Fetching sectors from Yahoo Finance for %d stocks...", len(tickers))
+    sectors = {}
+    
+    for i in range(0, len(tickers), batch_size):
+        batch = tickers[i:i+batch_size]
+        symbols = ",".join(batch)
+        url = f"{YAHOO_QUOTE_URL}?symbols={symbols}"
+        
+        try:
+            response = session.get(url, timeout=30)
+            response.raise_for_status()
+            data = response.json()
+            
+            quotes = data.get("quoteResponse", {}).get("result", [])
+            for quote in quotes:
+                ticker = clean_ticker(quote.get("symbol"))
+                sector = quote.get("sector")
+                if ticker and sector:
+                    sectors[ticker] = normalize_sector(sector)
+            
+            # 礼貌性延迟，避免触发限流
+            if i + batch_size < len(tickers):
+                time.sleep(0.5)
+                
+        except Exception as e:
+            logging.warning("Yahoo sector batch %d failed: %s", i // batch_size + 1, e)
+            continue
+    
+    logging.info("Yahoo sectors fetched: %d", len(sectors))
+    return sectors
+
+
+# ============================================================
+# Get weights (primary + fallback)
+# ============================================================
+
+def fetch_weights(api_key):
+    weights = fetch_tiingo_weights(api_key)
+    if weights:
+        return weights
+
+    logging.warning("Tiingo failed, trying Yahoo Finance fallback...")
+    return fetch_yahoo_weights()
 
 
 # ============================================================
@@ -266,14 +403,20 @@ def validate_data(data):
     total_weight = sum(item["weight"] for item in data.values())
     logging.info("Total weight: %.2f%%", total_weight)
 
-    if total_weight < 95 or total_weight > 105:
+    # 放宽总权重校验：85%~115% 为正常区间（再平衡日可能波动）
+    if total_weight < 85 or total_weight > 115:
         logging.error("Total weight abnormal: %.2f%%", total_weight)
         return False
+    elif total_weight < 95 or total_weight > 105:
+        logging.warning("Total weight slightly off: %.2f%% (may be rebalancing day)", total_weight)
 
     max_weight = max(item["weight"] for item in data.values())
-    if max_weight > 15:
+    # 放宽头部股权重校验（NVDA 高峰期可能接近 20%）
+    if max_weight > 25:
         logging.error("Max weight abnormal: %.2f%%", max_weight)
         return False
+    elif max_weight > 20:
+        logging.warning("Max weight high: %.2f%%", max_weight)
 
     logging.info("Validation passed")
     return True
@@ -301,7 +444,7 @@ def build_final_data(constituents, weights, old_data):
         elif ticker in old_data:
             weight = old_data[ticker]["weight"]
             fallback.append(ticker)
-            logging.warning("%s: using old weight %.2f%% (no Tiingo data)", ticker, weight)
+            logging.warning("%s: using old weight %.2f%% (no new data)", ticker, weight)
         else:
             logging.warning("%s: new constituent but no weight, skipping", ticker)
             continue
@@ -325,6 +468,19 @@ def build_final_data(constituents, weights, old_data):
         logging.info("Added stocks: %s", ", ".join(added))
     if removed:
         logging.info("Removed stocks: %s", ", ".join(removed))
+
+    # 为缺失 sector 的股票补充 sector（Yahoo 批量查询）
+    missing_sector_tickers = [t for t, v in final.items() if v["sector"] == "Unknown"]
+    if missing_sector_tickers:
+        yahoo_sectors = fetch_yahoo_sectors(missing_sector_tickers)
+        for ticker, sector in yahoo_sectors.items():
+            if ticker in final:
+                final[ticker]["sector"] = sector
+                logging.info("%s: sector updated to '%s' (from Yahoo)", ticker, sector)
+        
+        still_missing = [t for t, v in final.items() if v["sector"] == "Unknown"]
+        if still_missing:
+            logging.warning("Still missing sector for: %s", ", ".join(still_missing))
 
     return final
 
@@ -365,9 +521,7 @@ def write_components(data):
     lines = [
         "# Nasdaq-100 Constituents (Auto-Updated)",
         f"# Updated: {now}",
-        "# Source: Nasdaq API + Tiingo API (QQQ holdings)",
-        "#",
-        "# Tiingo provides full QQQ holdings with no weight compression.",
+        "# Source: Nasdaq API + Tiingo API (with Yahoo fallback)",
         "#",
         "STOCKS = [",
     ]
@@ -383,7 +537,7 @@ def write_components(data):
     lines.append('SECTORS = sorted(set(s[2] for s in STOCKS))')
     lines.append("")
     lines.append(f'LAST_UPDATE = "{now}"')
-    lines.append('DATA_SOURCE = "Nasdaq + Tiingo"')
+    lines.append('DATA_SOURCE = "Nasdaq + Tiingo/Yahoo"')
 
     temp_file = OUTPUT_FILE.with_suffix(".tmp")
 
@@ -410,13 +564,18 @@ def write_components(data):
 def main():
     print()
     print("=" * 65)
-    print(" Nasdaq-100 Auto Updater (Tiingo + Nasdaq)")
+    print(" Nasdaq-100 Auto Updater (Tiingo + Yahoo fallback)")
     print("=" * 65)
 
     logging.info("========== Update started ==========")
 
-    # Read API key from environment
-    tiingo_api_key = os.environ.get("TIINGO_API_KEY", "")
+    tiingo_api_key = os.environ.get("TIINGO_API_KEY", "").strip()
+    
+    if not tiingo_api_key:
+        print("⚠️  Warning: TIINGO_API_KEY not set, will use Yahoo Finance directly")
+    else:
+        masked = "*" * (len(tiingo_api_key) - 4) + tiingo_api_key[-4:] if len(tiingo_api_key) > 4 else "****"
+        print(f"  Tiingo API Key: {masked}")
 
     old_data = parse_old_components()
 
@@ -427,10 +586,10 @@ def main():
         print("❌ ndx_components.py will NOT be modified")
         return 1
 
-    weights = fetch_tiingo_weights(tiingo_api_key)
+    weights = fetch_weights(tiingo_api_key)
     if not weights:
-        logging.error("Failed to fetch Tiingo weights")
-        print("❌ Tiingo weights fetch failed")
+        logging.error("Failed to fetch weights from all sources")
+        print("❌ All weight sources failed")
         print("❌ ndx_components.py will NOT be modified")
         return 1
 
