@@ -1080,7 +1080,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   top5.forEach(s => {
     const item = document.createElement('div');
     item.className = 'leader-item';
-    item.innerHTML = `<span class="glitch-text">${s.ticker}</span><span class="val glitch-text" style="color:var(--color-rise);">${fmtPct(s.change)}</span>`;
+    item.innerHTML = `<span class="glitch-text" title="${s.name}">${s.ticker}</span><span class="val glitch-text" style="color:var(--color-rise);">${fmtPct(s.change)}</span>`;
     col1.appendChild(item);
   });
   const col2 = document.createElement('div');
@@ -1089,7 +1089,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   bottom5.forEach(s => {
     const item = document.createElement('div');
     item.className = 'leader-item';
-    item.innerHTML = `<span class="glitch-text">${s.ticker}</span><span class="val glitch-text" style="color:var(--color-fall);">${fmtPct(s.change)}</span>`;
+    item.innerHTML = `<span class="glitch-text" title="${s.name}">${s.ticker}</span><span class="val glitch-text" style="color:var(--color-fall);">${fmtPct(s.change)}</span>`;
     col2.appendChild(item);
   });
   leaderGrid.appendChild(col1);
