@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 纳指100每日收盘 Dashboard 数据抓取脚本
-Glitch 风格 · 纯数字展示 · 动态数据注入 · 音效引擎
+Glitch 风格 · 赛博朋克 24 色 · 动态数据注入 · 音效引擎
 """
 
 import json
@@ -11,6 +11,8 @@ import os
 import sys
 from datetime import datetime, timedelta
 from collections import defaultdict
+import hashlib
+import colorsys
 
 import yfinance as yf
 
@@ -20,6 +22,133 @@ OUTPUT_DIR = "docs"
 OUTPUT_FILE = os.path.join(OUTPUT_DIR, "index.html")
 
 
+# =====================================================================
+# 24 套赛博朋克配色（暗色·涨/跌色）
+# 完全避开 #0ff / #f0f 轴
+# =====================================================================
+COLOR_PALETTES = [
+    {"rise": "#FF5E00", "fall": "#00BFFF"},   # 氖橙·赛博蓝
+    {"rise": "#FFD700", "fall": "#8A2BE2"},   # 霓虹金·暗影紫
+    {"rise": "#39FF14", "fall": "#FF1493"},   # 酸液绿·霓虹粉
+    {"rise": "#00CED1", "fall": "#FF4500"},   # 绿松石·熔岩橙
+    {"rise": "#9B59B6", "fall": "#F1C40F"},   # 合成紫·电光黄
+    {"rise": "#FF2400", "fall": "#1E90FF"},   # 深红·电光蓝
+    {"rise": "#FFBF00", "fall": "#4B0082"},   # 琥珀·深海靛蓝
+    {"rise": "#FF6F61", "fall": "#008080"},   # 霓虹珊瑚·钴绿
+    {"rise": "#BF00FF", "fall": "#00FF7F"},   # 电光紫·薄荷
+    {"rise": "#00FF7F", "fall": "#FF007F"},   # 薄荷·热力粉
+    {"rise": "#FF4500", "fall": "#0047AB"},   # 橙红·钴蓝
+    {"rise": "#7FFF00", "fall": "#8B00FF"},   # 查特酒绿·暗黑紫
+    {"rise": "#00BFFF", "fall": "#FF69B4"},   # 深蓝·亮粉
+    {"rise": "#FFD700", "fall": "#DC143C"},   # 金·深红
+    {"rise": "#00FA9A", "fall": "#9400D3"},   # 春绿·紫罗兰
+    {"rise": "#4682B4", "fall": "#FF1A1A"},   # 钢蓝·霓虹红
+    {"rise": "#FF8C00", "fall": "#00CED1"},   # 暗橙·绿松石
+    {"rise": "#FF1493", "fall": "#39FF14"},   # 深粉·酸液绿
+    {"rise": "#1E90FF", "fall": "#FFD700"},   # 道奇蓝·金
+    {"rise": "#32CD32", "fall": "#BF00FF"},   # 石灰绿·电光紫
+    {"rise": "#FF69B4", "fall": "#00BFFF"},   # 热粉·深蓝
+    {"rise": "#FFBF00", "fall": "#1E90FF"},   # 琥珀·道奇蓝
+    {"rise": "#00FF7F", "fall": "#FF4500"},   # 薄荷·橙红
+    {"rise": "#8A2BE2", "fall": "#FFD700"},   # 蓝紫·金
+]
+
+
+# =====================================================================
+# 颜色工具函数
+# =====================================================================
+def hex_to_rgb(hex_str):
+    hex_str = hex_str.lstrip("#")
+    return tuple(int(hex_str[i:i+2], 16) for i in (0, 2, 4))
+
+def rgb_to_hex(rgb):
+    return "#{:02x}{:02x}{:02x}".format(*rgb)
+
+def adjust_brightness(hex_str, factor):
+    """调整颜色亮度，factor > 1 变亮，< 1 变暗"""
+    r, g, b = hex_to_rgb(hex_str)
+    h, l, s = colorsys.rgb_to_hls(r/255, g/255, b/255)
+    l = min(1.0, l * factor)
+    r2, g2, b2 = colorsys.hls_to_rgb(h, l, s)
+    return rgb_to_hex((int(r2*255), int(g2*255), int(b2*255)))
+
+def hex_to_rgba(hex_str, alpha):
+    r, g, b = hex_to_rgb(hex_str)
+    return f"rgba({r},{g},{b},{alpha})"
+
+
+# =====================================================================
+# 根据日期选择主题索引（每天固定）
+# =====================================================================
+def get_theme_index(date_str):
+    hash_obj = hashlib.md5(date_str.encode())
+    return int(hash_obj.hexdigest(), 16) % len(COLOR_PALETTES)
+
+
+# =====================================================================
+# 根据调色板生成完整的主题 CSS 变量（夜间 + 日间）
+# =====================================================================
+def build_theme_css(palette, light_factor=1.4):
+    """
+    palette: {'rise': '#...', 'fall': '#...'}
+    light_factor: 日间模式亮度提升系数
+    返回一段 CSS 字符串，包含 :root 和 html.light 下的变量覆盖
+    """
+    rise_dark = palette["rise"]
+    fall_dark = palette["fall"]
+    # 日间版本：调亮并略微降低饱和度（可选）
+    rise_light = adjust_brightness(rise_dark, light_factor)
+    fall_light = adjust_brightness(fall_dark, light_factor)
+
+    # 生成半透明、阴影等辅助值
+    def gen_vars(rise, fall, mode):
+        # 背景色（半透明）
+        rise_bg = hex_to_rgba(rise, 0.12)
+        fall_bg = hex_to_rgba(fall, 0.12)
+        # Glitch 颜色
+        glitch1 = rise
+        glitch2 = fall
+        # 阴影
+        shadow_rise = f"0 0 30px {hex_to_rgba(rise, 0.25)}"
+        shadow_fall = f"0 0 30px {hex_to_rgba(fall, 0.25)}"
+        # 光晕
+        glow_rise = hex_to_rgba(rise, 0.25)
+        glow_fall = hex_to_rgba(fall, 0.25)
+        # 徽章边框
+        badge_border = hex_to_rgba(rise, 0.3)
+        return {
+            "rise": rise,
+            "fall": fall,
+            "rise_bg": rise_bg,
+            "fall_bg": fall_bg,
+            "glitch1": glitch1,
+            "glitch2": glitch2,
+            "shadow_rise": shadow_rise,
+            "shadow_fall": shadow_fall,
+            "glow_rise": glow_rise,
+            "glow_fall": glow_fall,
+            "badge_border": badge_border,
+        }
+
+    dark_vars = gen_vars(rise_dark, fall_dark, "dark")
+    light_vars = gen_vars(rise_light, fall_light, "light")
+
+    # 拼接 CSS
+    css = ":root {\n"
+    for k, v in dark_vars.items():
+        css += f"  --color-{k}: {v};\n"
+    css += "}\n\n"
+    css += "html.light {\n"
+    for k, v in light_vars.items():
+        css += f"  --color-{k}: {v};\n"
+    css += "}\n"
+
+    return css
+
+
+# =====================================================================
+# 原有数据抓取函数（不变）
+# =====================================================================
 def ensure_dir():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -167,6 +296,12 @@ def build_data():
     oc = sum(s["weight"] * s["change"] for s in others) / ow if ow > 0 else 0
     pie = top15 + [{"ticker": "其他", "name": f"其他{len(others)}只", "sector": "", "weight": round(ow, 2), "change": round(oc, 2)}]
 
+    # 选择当日配色主题
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    theme_idx = get_theme_index(date_str)
+    palette = COLOR_PALETTES[theme_idx]
+    theme_css = build_theme_css(palette)
+
     result = {
         "index": index_info,
         "stocks": stocks,
@@ -174,7 +309,9 @@ def build_data():
         "sectors": sector_list,
         "bins": {"labels": labels, "counts": counts},
         "history": history,
-        "date": datetime.now().strftime("%Y-%m-%d"),
+        "date": date_str,
+        "theme_css": theme_css,       # 注入完整 CSS
+        "theme_idx": theme_idx,       # 调试用
     }
 
     return result
@@ -237,6 +374,11 @@ def build_mock_data():
     oc = sum(s["weight"] * s["change"] for s in others) / ow if ow > 0 else 0
     pie = top15 + [{"ticker": "其他", "name": f"其他{len(others)}只", "sector": "", "weight": round(ow, 2), "change": round(oc, 2)}]
 
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    theme_idx = get_theme_index(date_str)
+    palette = COLOR_PALETTES[theme_idx]
+    theme_css = build_theme_css(palette)
+
     result = {
         "index": {"price": history[-1], "prev_close": round(history[-1] / (1 + index_change/100), 2), "change": index_change, "up": up, "down": down, "flat": 0, "total": len(stocks)},
         "stocks": stocks,
@@ -244,14 +386,16 @@ def build_mock_data():
         "sectors": sector_list,
         "bins": {"labels": labels, "counts": counts},
         "history": history,
-        "date": datetime.now().strftime("%Y-%m-%d"),
+        "date": date_str,
+        "theme_css": theme_css,
+        "theme_idx": theme_idx,
     }
 
     return result
 
 
 # =====================================================================
-# Glitch 风格 HTML 模板 — 动态数据注入版（含完整导航 + 音效，无花屏）
+# HTML 模板（原模板只保留结构和 CSS 框架，变量由 Python 注入）
 # =====================================================================
 HTML_TEMPLATE = r"""<!DOCTYPE html>
 <html lang="zh-CN">
@@ -263,51 +407,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&family=Noto+Sans+SC:wght@500;700;900&display=swap" rel="stylesheet">
   <style>
-    /* ===== 全局 CSS 变量（暗色默认） ===== */
-    :root {
-      --bg-body: #0b0b0b;
-      --bg-sticky: rgba(11, 11, 11, 0.92);
-      --bg-card: rgba(255,255,255,0.02);
-      --border-color: rgba(255,255,255,0.06);
-      --text-primary: #ffffff;
-      --text-secondary: #aaaaaa;
-      --text-muted: #666666;
-      --text-dim: #444444;
-      --color-rise: #0ff;
-      --color-fall: #f0f;
-      --color-rise-bg: rgba(0,255,255,0.1);
-      --color-fall-bg: rgba(255,0,255,0.1);
-      --glitch-color1: #0ff;
-      --glitch-color2: #f0f;
-      --shadow-rise: 0 0 30px rgba(0,255,255,0.2);
-      --shadow-fall: 0 0 30px rgba(255,0,255,0.2);
-      --badge-border: rgba(0,255,255,0.3);
-      --glow-rise: rgba(0, 255, 255, 0.25);
-      --glow-fall: rgba(255, 0, 255, 0.25);
-    }
-
-    /* ===== 日间模式 ===== */
-    html.light {
-      --bg-body: #f2f4f8;
-      --bg-sticky: rgba(255, 255, 255, 0.85);
-      --bg-card: rgba(0, 0, 0, 0.03);
-      --border-color: rgba(0, 0, 0, 0.08);
-      --text-primary: #0a0a0a;
-      --text-secondary: #2d2d2d;
-      --text-muted: #6b7280;
-      --text-dim: #9ca3af;
-      --color-rise: #0ea5e9;
-      --color-fall: #ec4899;
-      --color-rise-bg: rgba(14, 165, 233, 0.12);
-      --color-fall-bg: rgba(236, 72, 153, 0.12);
-      --glitch-color1: #0ea5e9;
-      --glitch-color2: #ec4899;
-      --shadow-rise: 0 0 25px rgba(14, 165, 233, 0.25);
-      --shadow-fall: 0 0 25px rgba(236, 72, 153, 0.25);
-      --badge-border: rgba(14, 165, 233, 0.3);
-      --glow-rise: rgba(14, 165, 233, 0.20);
-      --glow-fall: rgba(236, 72, 153, 0.20);
-    }
+    /* ===== 全局 CSS 变量（由 Python 注入主题色） ===== */
+    /* THEME_CSS_PLACEHOLDER */
 
     /* ===== 重置 ===== */
     * { margin:0; padding:0; box-sizing:border-box; }
@@ -443,7 +544,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       cursor:pointer; font-weight:700; transition:all 0.2s; font-family:inherit; line-height:1.5;
     }
     .theme-toggle:hover { background:var(--bg-card); border-color:var(--color-rise); color:var(--text-primary); }
-    /* 静音按钮 — 纯汉字 */
     .mute-btn {
       background:none; border:1px solid var(--border-color); border-radius:40px;
       color:var(--text-secondary);
@@ -451,7 +551,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       cursor:pointer; font-weight:700; transition:all 0.2s; font-family:inherit; line-height:1.5;
     }
     .mute-btn:hover { background:var(--bg-card); border-color:var(--color-rise); color:var(--text-primary); }
-    /* 导航按钮组 */
     .nav-group {
       display:flex;
       align-items:center;
@@ -826,9 +925,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
   let audioCtx = null;
   let isMuted = false;
-  let audioReady = false;  // 标记音频是否已激活
+  let audioReady = false;
 
-  // 读取静音状态
   const muteState = localStorage.getItem('ndxMuted');
   if (muteState === 'true') {
     isMuted = true;
@@ -848,12 +946,10 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     }
   }
 
-  // 页面加载后绑定一次点击事件，用于激活音频
   function activateAudioOnFirstClick() {
     if (audioReady) return;
     const handler = function() {
       initAudio();
-      // 播放一个极短提示音（可选）
       if (!isMuted) {
         try {
           const now = audioCtx.currentTime;
@@ -874,13 +970,10 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     document.addEventListener('click', handler);
   }
 
-  // 播放故障音效
   function playGlitchSound(type) {
     if (isMuted) return;
-    // 如果音频还没激活，尝试激活
     if (!audioReady) {
       initAudio();
-      // 如果激活后仍然不可用，则放弃本次播放
       if (!audioReady) return;
     }
     try {
@@ -936,7 +1029,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     } catch (e) {}
   }
 
-  // 静音切换（纯汉字）
   const muteBtn = document.getElementById('muteBtn');
   if (muteBtn) {
     muteBtn.textContent = isMuted ? '静音' : '音效';
@@ -945,19 +1037,12 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       localStorage.setItem('ndxMuted', isMuted ? 'true' : 'false');
       muteBtn.textContent = isMuted ? '静音' : '音效';
       if (!isMuted) {
-        // 激活音频并播放一个提示音
         initAudio();
-        if (!audioReady) {
-          // 如果尚未激活，尝试用点击激活
-          audioReady = true;
-          // 直接播放一个短音
-        }
         playGlitchSound('switch');
       }
     });
   }
 
-  // 页面加载后绑定激活监听器
   activateAudioOnFirstClick();
 
   // ==============================================================
@@ -1344,6 +1429,9 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 """
 
 
+# =====================================================================
+# 历史管理与 HTML 生成
+# =====================================================================
 def get_existing_history_dates(output_dir="docs"):
     import glob
     import re
@@ -1398,15 +1486,21 @@ def generate_html(data, history_dates, is_history=False):
     is_history_str = "true" if is_history else "false"
 
     html = HTML_TEMPLATE
+    # 注入主题 CSS（替换占位符）
+    html = html.replace("/* THEME_CSS_PLACEHOLDER */", data["theme_css"])
+    # 注入数据
     html = html.replace("__DATA_JSON__", data_json)
     html = html.replace("__HISTORY_DATES__", history_dates_json)
     html = html.replace("__IS_HISTORY__", is_history_str)
     return html
 
 
+# =====================================================================
+# 主入口
+# =====================================================================
 def main():
     print("=" * 50)
-    print("NDX Dashboard 数据抓取 (Glitch 风格 · 音效)")
+    print("NDX Dashboard 数据抓取 (赛博朋克 24 色 · 音效)")
     print(f"开始时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 50)
 
@@ -1416,6 +1510,7 @@ def main():
     print(f"\n数据日期: {data['date']}")
     print(f"指数涨跌: {data['index']['change']}%")
     print(f"成分股数: {data['index']['total']}")
+    print(f"配色主题: #{data['theme_idx']+1}")
 
     print("\n[历史快照管理]")
     history_dates = manage_history(data, OUTPUT_DIR, keep_days=30)
