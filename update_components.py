@@ -2,14 +2,15 @@
 # -*- coding: utf-8 -*-
 """
 自动更新纳指100成分股及权重
-数据源：QQQ ETF 持仓 (yfinance)
+数据源：Yahoo Finance API (QQQ 持仓)
 运行频率：每周一次（由 workflow 控制）
 """
 
 import os
 import re
 import time
-import yfinance as yf
+import json
+import requests
 from datetime import datetime
 
 
@@ -35,56 +36,51 @@ def parse_ndx_components(filepath="ndx_components.py"):
 
 
 # ================================================================
-# 2. 从 QQQ 获取最新持仓
+# 2. 从 Yahoo Finance API 获取 QQQ 持仓
 # ================================================================
 def fetch_qqq_holdings():
-    """抓取 QQQ 最新持仓，返回 {ticker: weight} 字典"""
-    print("📡 正在获取 QQQ 持仓...")
+    """通过 Yahoo Finance API 获取 QQQ 最新持仓，返回 {ticker: weight} 字典"""
+    print("📡 正在通过 API 获取 QQQ 持仓...")
+    url = "https://query1.finance.yahoo.com/v10/finance/quoteSummary/QQQ?modules=etfHoldings"
+
     try:
-        qqq = yf.Ticker("QQQ")
-        holdings = qqq.holdings
-        if holdings is None or holdings.empty:
-            print("❌ 未获取到持仓数据")
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+
+        # 解析持仓
+        holdings_data = data.get("quoteSummary", {}).get("result", [])[0].get("etfHoldings", {})
+        holdings_list = holdings_data.get("holdings", [])
+
+        if not holdings_list:
+            print("❌ API 返回的持仓列表为空")
             return {}
 
-        # holdings 通常包含 'symbol' 和 'holdingPercent' 列
-        if 'symbol' in holdings.columns:
-            ticker_col = 'symbol'
-        elif 'ticker' in holdings.columns:
-            ticker_col = 'ticker'
-        else:
-            print("❌ 无法识别持仓表的股票代码列")
-            return {}
-
-        if 'holdingPercent' in holdings.columns:
-            weight_col = 'holdingPercent'
-        elif 'weight' in holdings.columns:
-            weight_col = 'weight'
-        else:
-            print("❌ 无法识别持仓表的权重列")
-            return {}
-
-        # 提取数据
         result = {}
-        for _, row in holdings.iterrows():
-            ticker = row[ticker_col]
-            weight = row[weight_col] * 100  # 转为百分比
-            if ticker and weight > 0.01:
-                result[ticker] = round(weight, 2)
+        for item in holdings_list:
+            ticker = item.get("symbol")
+            weight = item.get("holdingPercent")  # 返回的是小数，如 0.0772 表示 7.72%
+            if ticker and weight:
+                result[ticker] = round(weight * 100, 2)  # 转为百分比
 
         print(f"✅ 成功获取 {len(result)} 只股票权重")
         return result
-    except Exception as e:
-        print(f"❌ 抓取失败: {e}")
+
+    except requests.exceptions.RequestException as e:
+        print(f"❌ 网络请求失败: {e}")
+        return {}
+    except (KeyError, IndexError, json.JSONDecodeError) as e:
+        print(f"❌ 解析数据失败: {e}")
         return {}
 
 
 # ================================================================
-# 3. 如果出现新股票，尝试获取名称和行业
+# 3. 如果出现新股票，尝试获取名称和行业（使用 Yahoo Finance info）
 # ================================================================
 def fetch_stock_info(ticker):
-    """获取单只股票的名称和行业"""
+    """获取单只股票的名称和行业（通过 yfinance，但仅用于新股票）"""
     try:
+        import yfinance as yf
         t = yf.Ticker(ticker)
         info = t.info
         name = info.get('shortName', ticker)
@@ -107,6 +103,7 @@ def generate_ndx_components(old_mapping, new_weights, output_path="ndx_component
     for ticker in all_tickers:
         weight = new_weights.get(ticker, 0.0)
         if weight == 0.0:
+            # 如果在 QQQ 持仓中找不到，可能已经被剔除，跳过
             continue
 
         if ticker in old_mapping:
@@ -125,7 +122,7 @@ def generate_ndx_components(old_mapping, new_weights, output_path="ndx_component
     lines = [
         '# 纳斯达克100成分股列表（自动更新）',
         f'# 数据更新日期: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}',
-        '# 数据源: QQQ ETF 持仓 (yfinance)',
+        '# 数据源: Yahoo Finance API (QQQ 持仓)',
         '#',
         'STOCKS = [',
     ]
