@@ -379,7 +379,8 @@ def backup_old_file():
         return
     BACKUP_DIR.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    backup_file = BACKUP_DIR / "ndx_components_%s.py" % timestamp
+    # FIX: use format() instead of % to avoid PosixPath TypeError
+    backup_file = BACKUP_DIR / "ndx_components_{}.py".format(timestamp)
     shutil.copy2(OUTPUT_FILE, backup_file)
     logging.info("Backup saved: %s", backup_file)
     backups = sorted(BACKUP_DIR.glob("ndx_components_*.py"), key=lambda x: x.stat().st_mtime, reverse=True)
@@ -391,7 +392,7 @@ def backup_old_file():
 
 
 # ============================================================
-# Write file (use .format() to avoid f-string backslash issues)
+# Write file
 # ============================================================
 
 def write_components(data):
@@ -399,22 +400,21 @@ def write_components(data):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     lines = [
         "# Nasdaq-100 Constituents (Auto-Updated)",
-        "# Updated: %s" % now,
+        "# Updated: {}".format(now),
         "# Source: Nasdaq API + Slickcharts (with built-in fallback)",
         "#",
         "STOCKS = [",
     ]
     for ticker, item in sorted_items:
-        # Use .format() instead of f-string to avoid backslash issues
-        line = '    ("{t}", "{n}", "{s}", {w:.2f}),'.format(
-            t=ticker, n=item["name"], s=item["sector"], w=item["weight"]
+        line = '    ("{}", "{}", "{}", {:.2f}),'.format(
+            ticker, item["name"], item["sector"], item["weight"]
         )
         lines.append(line)
     lines.append("]")
     lines.append("")
     lines.append("SECTORS = sorted(set(s[2] for s in STOCKS))")
     lines.append("")
-    lines.append("LAST_UPDATE = \"%s\"" % now)
+    lines.append('LAST_UPDATE = "{}"'.format(now))
     lines.append('DATA_SOURCE = "Nasdaq + Slickcharts"')
     content = "\n".join(lines)
     temp_file = OUTPUT_FILE.with_suffix(".tmp")
@@ -470,8 +470,8 @@ def main():
     print("=" * 65)
     print(" Nasdaq-100 Update Successful")
     print("=" * 65)
-    print("  Constituents: %d" % len(final_data))
-    print("  Output: %s" % OUTPUT_FILE)
+    print("  Constituents: {}".format(len(final_data)))
+    print("  Output: {}".format(OUTPUT_FILE))
     print("=" * 65)
     logging.info("========== Update successful ==========")
     return 0
