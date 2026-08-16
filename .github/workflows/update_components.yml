@@ -19,7 +19,7 @@ jobs:
           cache: "pip"
       - name: 安装依赖
         run: |
-          pip install --upgrade yfinance pandas requests beautifulsoup4 lxml
+          pip install requests beautifulsoup4
       - name: 更新成分股
         run: python update_components.py
       - name: 提交变更
