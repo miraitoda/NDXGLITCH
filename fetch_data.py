@@ -1369,24 +1369,43 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     newTip.className = 'tooltip';
     document.body.appendChild(newTip);
   }
-  function showTip(e, html) {
-    const tipEl = document.getElementById('tooltip');
-    if (!tipEl) return;
-    tipEl.innerHTML = html;
-    tipEl.style.opacity = '1';
-    const tw = tipEl.offsetWidth, th = tipEl.offsetHeight;
-    let left = e.clientX - tw/2;
-    let top = e.clientY - th - 14;
-    if (left < 8) left = 8;
-    if (left + tw > window.innerWidth - 8) left = window.innerWidth - tw - 8;
-    if (top < 8) top = e.clientY + 14;
-    tipEl.style.left = left + 'px';
-    tipEl.style.top = top + 'px';
+function showTip(e, html) {
+  const tipEl = document.getElementById('tooltip');
+  if (!tipEl) return;
+  
+  tipEl.innerHTML = html;
+  tipEl.style.opacity = '1';
+  
+  // 获取鼠标位置（兼容不同事件对象）
+  const clientX = e.clientX || e.pageX || 0;
+  const clientY = e.clientY || e.pageY || 0;
+  
+  // 获取提示框尺寸，如果为 0 则使用默认值
+  let tw = tipEl.offsetWidth || 140;
+  let th = tipEl.offsetHeight || 36;
+  
+  // 计算位置：默认在鼠标上方居中
+  let left = clientX - tw / 2;
+  let top = clientY - th - 12;
+  
+  // 边界保护（防止超出屏幕）
+  const padding = 10;
+  if (left < padding) left = padding;
+  if (left + tw > window.innerWidth - padding) {
+    left = window.innerWidth - tw - padding;
   }
-  function hideTip() {
-    const tipEl = document.getElementById('tooltip');
-    if (tipEl) tipEl.style.opacity = '0';
+  if (top < padding) {
+    // 如果上方放不下，显示在鼠标下方
+    top = clientY + 12;
   }
+  
+  // 确保是数字
+  if (isNaN(left)) left = padding;
+  if (isNaN(top)) top = padding;
+  
+  tipEl.style.left = left + 'px';
+  tipEl.style.top = top + 'px';
+}
 
   console.log('✦ Glitch 风格 · 音效已加载 · 领涨领跌悬浮提示已启用 ✦');
 </script>
