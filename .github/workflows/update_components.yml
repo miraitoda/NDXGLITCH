@@ -1,15 +1,15 @@
-name: 更新成分股
+name: Update Constituents
 
 on:
   schedule:
-    - cron: "0 0 * * 0"   # 每周日 UTC 0:00 = 北京时间 8:00
+    - cron: "0 0 * * 0"   # Every Sunday at 00:00 UTC
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  update-components:
+  update:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,21 +19,21 @@ jobs:
           python-version: "3.11"
           cache: "pip"
 
-      - name: 安装依赖
+      - name: Install dependencies
         run: |
           pip install requests
 
-      - name: 更新 Nasdaq-100 成分股及权重
+      - name: Update Nasdaq-100 constituents
         run: python update_components.py
 
-      - name: 提交变更
+      - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add ndx_components.py backup_ndx/ update_ndx.log
           if git diff --staged --quiet; then
-            echo "✅ 无变化，无需提交"
+            echo "✅ No changes to commit"
           else
-            git commit -m "chore: 自动更新 Nasdaq-100 成分股权重 $(date +'%Y-%m-%d')"
+            git commit -m "chore: auto-update Nasdaq-100 constituents $(date +'%Y-%m-%d')"
             git push
           fi
