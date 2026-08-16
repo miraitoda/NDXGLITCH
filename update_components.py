@@ -2,14 +2,13 @@
 # -*- coding: utf-8 -*-
 """
 自动更新纳指100成分股及权重
-数据源：Yahoo Finance CSV 导出 (QQQ 持仓)
+数据源：Schwab 官网 QQQ 持仓页面（纯 HTML，稳定可靠）
 """
 
 import os
 import re
 import requests
-import csv
-import io
+import pandas as pd
 from datetime import datetime
 
 
@@ -31,38 +30,59 @@ def parse_ndx_components(filepath="ndx_components.py"):
 
 
 def fetch_qqq_holdings():
-    """从 Yahoo Finance CSV 导出获取 QQQ 持仓"""
-    print("📡 正在从 Yahoo Finance 下载 QQQ 持仓 CSV...")
-    url = "https://query1.finance.yahoo.com/v7/finance/quote/QQQ/holdings?download=1"
+    """从 Schwab 官网获取 QQQ 持仓（纯 HTML，无 JavaScript 渲染）"""
+    print("📡 正在从 Schwab 获取 QQQ 持仓...")
+    
+    # Schwab QQQ 持仓页面 URL（稳定，无需 session token）
+    url = "https://www.schwab.wallst.com/schwab/Prospect/research/etfs/schwabETF/index.asp?symbol=QQQ&type=holdings"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
     }
+    
     try:
         resp = requests.get(url, headers=headers, timeout=30)
         resp.raise_for_status()
-
-        # 解析 CSV
-        content = resp.text
-        # 跳过注释行（以 # 开头）
-        lines = [line for line in content.splitlines() if not line.startswith('#')]
-        csv_data = csv.DictReader(lines)
-
-        result = {}
-        for row in csv_data:
-            # 列名可能是 'Symbol', 'Name', '% Weight'
-            symbol = row.get('Symbol', '').strip()
-            weight_str = row.get('% Weight', '').replace('%', '').strip()
-            if symbol and weight_str:
-                try:
-                    weight = float(weight_str)
-                    if weight > 0.01:
-                        result[symbol] = round(weight, 2)
-                except ValueError:
-                    continue
-
-        print(f"✅ 成功获取 {len(result)} 只股票权重")
-        return result
-
+        
+        # 使用 pandas 解析 HTML 表格
+        tables = pd.read_html(resp.text)
+        
+        # 遍历所有表格，找持仓表（包含 Symbol、% Portfolio Weight 等列）
+        for table in tables:
+            # 检查是否包含持仓表的标志列
+            cols = [str(col).lower() for col in table.columns]
+            col_str = ' '.join(cols)
+            
+            # 持仓表的特征：包含 symbol、weight、market value 等
+            if ('symbol' in col_str or 'ticker' in col_str) and ('weight' in col_str or 'holding' in col_str):
+                # 找 ticker 列和权重列
+                ticker_col = None
+                weight_col = None
+                for col in table.columns:
+                    col_lower = str(col).lower()
+                    if 'symbol' in col_lower or 'ticker' in col_lower:
+                        ticker_col = col
+                    if 'weight' in col_lower or 'holding' in col_lower:
+                        weight_col = col
+                
+                if ticker_col and weight_col:
+                    result = {}
+                    for _, row in table.iterrows():
+                        ticker = str(row[ticker_col]).strip()
+                        weight_str = str(row[weight_col]).replace('%', '').strip()
+                        try:
+                            weight = float(weight_str)
+                            if ticker and weight > 0.01 and ticker != 'nan':
+                                result[ticker] = round(weight, 2)
+                        except:
+                            continue
+                    
+                    if result:
+                        print(f"✅ 成功从 Schwab 获取 {len(result)} 只股票权重")
+                        return result
+        
+        print("❌ 未找到持仓表")
+        return {}
+        
     except Exception as e:
         print(f"❌ 抓取失败: {e}")
         return {}
@@ -91,7 +111,7 @@ def generate_ndx_components(old_mapping, new_weights, output_path="ndx_component
     lines = [
         '# 纳斯达克100成分股列表（自动更新）',
         f'# 数据更新日期: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}',
-        '# 数据源: Yahoo Finance CSV 导出 (QQQ 持仓)',
+        '# 数据源: Schwab 官网 (QQQ 持仓)',
         '#',
         'STOCKS = [',
     ]
