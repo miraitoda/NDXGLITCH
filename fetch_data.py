@@ -87,7 +87,7 @@ def get_theme_index(date_str):
 
 
 # =====================================================================
-# 根据调色板生成完整的主题 CSS 变量（夜间 + 日间）
+# 根据调色板生成完整的主题 CSS 变量（夜间 + 日间），变量名与原始模板完全一致
 # =====================================================================
 def build_theme_css(palette, light_factor=1.4):
     """
@@ -97,7 +97,6 @@ def build_theme_css(palette, light_factor=1.4):
     """
     rise_dark = palette["rise"]
     fall_dark = palette["fall"]
-    # 日间版本：调亮
     rise_light = adjust_brightness(rise_dark, light_factor)
     fall_light = adjust_brightness(fall_dark, light_factor)
 
@@ -125,23 +124,43 @@ def build_theme_css(palette, light_factor=1.4):
             "badge_border": badge_border,
         }
 
-    dark_vars = gen_vars(rise_dark, fall_dark)
-    light_vars = gen_vars(rise_light, fall_light)
+    dark = gen_vars(rise_dark, fall_dark)
+    light = gen_vars(rise_light, fall_light)
 
-    css = ":root {\n"
-    for k, v in dark_vars.items():
-        css += f"  --color-{k}: {v};\n"
-    css += "}\n\n"
-    css += "html.light {\n"
-    for k, v in light_vars.items():
-        css += f"  --color-{k}: {v};\n"
-    css += "}\n"
+    # 使用原始模板中的变量名（连字符）
+    css = f""":root {{
+  --color-rise: {dark['rise']};
+  --color-fall: {dark['fall']};
+  --color-rise-bg: {dark['rise_bg']};
+  --color-fall-bg: {dark['fall_bg']};
+  --glitch-color1: {dark['glitch1']};
+  --glitch-color2: {dark['glitch2']};
+  --shadow-rise: {dark['shadow_rise']};
+  --shadow-fall: {dark['shadow_fall']};
+  --glow-rise: {dark['glow_rise']};
+  --glow-fall: {dark['glow_fall']};
+  --badge-border: {dark['badge_border']};
+}}
 
+html.light {{
+  --color-rise: {light['rise']};
+  --color-fall: {light['fall']};
+  --color-rise-bg: {light['rise_bg']};
+  --color-fall-bg: {light['fall_bg']};
+  --glitch-color1: {light['glitch1']};
+  --glitch-color2: {light['glitch2']};
+  --shadow-rise: {light['shadow_rise']};
+  --shadow-fall: {light['shadow_fall']};
+  --glow-rise: {light['glow_rise']};
+  --glow-fall: {light['glow_fall']};
+  --badge-border: {light['badge_border']};
+}}
+"""
     return css
 
 
 # =====================================================================
-# 原有数据抓取函数（不变）
+# 数据抓取函数（完全保持原样）
 # =====================================================================
 def ensure_dir():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -304,8 +323,8 @@ def build_data():
         "bins": {"labels": labels, "counts": counts},
         "history": history,
         "date": date_str,
-        "theme_css": theme_css,       # 注入完整 CSS
-        "theme_idx": theme_idx,       # 调试用
+        "theme_css": theme_css,
+        "theme_idx": theme_idx,
     }
 
     return result
@@ -389,7 +408,9 @@ def build_mock_data():
 
 
 # =====================================================================
-# HTML 模板（已修复基础变量）
+# HTML 模板（完全保留原始模板，只将硬编码颜色替换为 CSS 变量）
+# 注意：原模板中的颜色变量（如 #0ff / #f0f）已全部移除，
+# 由 build_theme_css() 动态注入。基础背景色固定。
 # =====================================================================
 HTML_TEMPLATE = r"""<!DOCTYPE html>
 <html lang="zh-CN">
@@ -423,7 +444,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       --text-dim: #9ca3af;
     }
 
-    /* ===== 主题色（由 Python 动态注入涨跌色） ===== */
+    /* ===== 主题色（由 Python 动态注入涨跌色 + 光晕） ===== */
     /* THEME_CSS_PLACEHOLDER */
 
     /* ===== 重置 ===== */
@@ -1516,7 +1537,7 @@ def generate_html(data, history_dates, is_history=False):
 # =====================================================================
 def main():
     print("=" * 50)
-    print("NDX Dashboard 数据抓取 (赛博朋克 24 色 · 音效)")
+    print("NDX Dashboard 数据抓取 (赛博朋克 24 色 · 音效 · 光晕)")
     print(f"开始时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 50)
 
