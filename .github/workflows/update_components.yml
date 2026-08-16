@@ -2,7 +2,6 @@ name: 更新成分股
 
 on:
   schedule:
-    # 每周日 UTC 0:00 = 北京时间周日 8:00
     - cron: "0 0 * * 0"
   workflow_dispatch:
 
@@ -14,19 +13,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: "pip"
-
       - name: 安装依赖
         run: |
           pip install yfinance pandas requests
-
       - name: 更新成分股
         run: python update_components.py
-
       - name: 提交变更
         run: |
           git config user.name "github-actions[bot]"
