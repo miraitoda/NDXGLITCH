@@ -2,9 +2,8 @@ name: Update Nasdaq-100 Components
 
 on:
   schedule:
-    # 每天北京时间 08:00 运行 (UTC 00:00)
-    - cron: '0 0 * * *'
-  workflow_dispatch:  # 允许手动触发
+    - cron: '0 0 * * *'   # 每天北京时间 08:00
+  workflow_dispatch:
 
 jobs:
   update-ndx:
@@ -15,8 +14,6 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -26,20 +23,17 @@ jobs:
       - name: Install deps
         run: pip install requests
 
+      # ========== 修正：文件名改为 update_components.py ==========
       - name: Run updater
         env:
           TIINGO_API_KEY: ${{ secrets.TIINGO_API_KEY }}
-        run: python update_ndx.py
+        run: python update_components.py
 
       - name: Commit & push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # 只提交生成的数据文件，不提交日志和备份（runner 是临时环境，备份无意义）
           git add ndx_components.py
-          
-          # 有变更才提交，避免空 commit
           if ! git diff --cached --quiet; then
             git commit -m "auto: update ndx components $(date +%Y-%m-%d)"
             git push
