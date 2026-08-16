@@ -633,6 +633,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       display:flex; justify-content:space-between; padding:0.3vw 0;
       font-size:clamp(18px,2.6vw,32px); font-weight:800;
       border-bottom:1px solid var(--border-color);
+      cursor:default;
     }
     .leader-item .val { font-weight:900; }
 
@@ -826,9 +827,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
   let audioCtx = null;
   let isMuted = false;
-  let audioReady = false;  // 标记音频是否已激活
+  let audioReady = false;
 
-  // 读取静音状态
   const muteState = localStorage.getItem('ndxMuted');
   if (muteState === 'true') {
     isMuted = true;
@@ -848,12 +848,10 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     }
   }
 
-  // 页面加载后绑定一次点击事件，用于激活音频
   function activateAudioOnFirstClick() {
     if (audioReady) return;
     const handler = function() {
       initAudio();
-      // 播放一个极短提示音（可选）
       if (!isMuted) {
         try {
           const now = audioCtx.currentTime;
@@ -874,13 +872,10 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     document.addEventListener('click', handler);
   }
 
-  // 播放故障音效
   function playGlitchSound(type) {
     if (isMuted) return;
-    // 如果音频还没激活，尝试激活
     if (!audioReady) {
       initAudio();
-      // 如果激活后仍然不可用，则放弃本次播放
       if (!audioReady) return;
     }
     try {
@@ -936,7 +931,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     } catch (e) {}
   }
 
-  // 静音切换（纯汉字）
   const muteBtn = document.getElementById('muteBtn');
   if (muteBtn) {
     muteBtn.textContent = isMuted ? '静音' : '音效';
@@ -945,19 +939,15 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       localStorage.setItem('ndxMuted', isMuted ? 'true' : 'false');
       muteBtn.textContent = isMuted ? '静音' : '音效';
       if (!isMuted) {
-        // 激活音频并播放一个提示音
         initAudio();
         if (!audioReady) {
-          // 如果尚未激活，尝试用点击激活
           audioReady = true;
-          // 直接播放一个短音
         }
         playGlitchSound('switch');
       }
     });
   }
 
-  // 页面加载后绑定激活监听器
   activateAudioOnFirstClick();
 
   // ==============================================================
@@ -1073,28 +1063,59 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   const sorted = stocks.slice().sort((a, b) => b.change - a.change);
   const top5 = sorted.slice(0, 5);
   const bottom5 = sorted.slice(-5).reverse();
+
+  // ===== 领涨/领跌（增加公司名称悬浮提示） =====
   const leaderGrid = document.getElementById('leaderGrid');
+
   const col1 = document.createElement('div');
   col1.className = 'leader-col';
   col1.innerHTML = '<div class="col-title" style="color:var(--color-rise);">▲ 领涨</div>';
   top5.forEach(s => {
     const item = document.createElement('div');
     item.className = 'leader-item';
-    item.innerHTML = `<span class="glitch-text">${s.ticker}</span><span class="val glitch-text" style="color:var(--color-rise);">${fmtPct(s.change)}</span>`;
+    const tickerSpan = document.createElement('span');
+    tickerSpan.className = 'glitch-text';
+    tickerSpan.textContent = s.ticker;
+    const valSpan = document.createElement('span');
+    valSpan.className = 'val glitch-text';
+    valSpan.style.color = 'var(--color-rise)';
+    valSpan.textContent = fmtPct(s.change);
+    item.appendChild(tickerSpan);
+    item.appendChild(valSpan);
+    // 鼠标悬浮显示公司名称
+    item.addEventListener('mouseenter', function(e) {
+      showTip(e, `${s.ticker} ${s.name}`);
+    });
+    item.addEventListener('mouseleave', hideTip);
     col1.appendChild(item);
   });
+
   const col2 = document.createElement('div');
   col2.className = 'leader-col';
   col2.innerHTML = '<div class="col-title" style="color:var(--color-fall);">▼ 领跌</div>';
   bottom5.forEach(s => {
     const item = document.createElement('div');
     item.className = 'leader-item';
-    item.innerHTML = `<span class="glitch-text">${s.ticker}</span><span class="val glitch-text" style="color:var(--color-fall);">${fmtPct(s.change)}</span>`;
+    const tickerSpan = document.createElement('span');
+    tickerSpan.className = 'glitch-text';
+    tickerSpan.textContent = s.ticker;
+    const valSpan = document.createElement('span');
+    valSpan.className = 'val glitch-text';
+    valSpan.style.color = 'var(--color-fall)';
+    valSpan.textContent = fmtPct(s.change);
+    item.appendChild(tickerSpan);
+    item.appendChild(valSpan);
+    item.addEventListener('mouseenter', function(e) {
+      showTip(e, `${s.ticker} ${s.name}`);
+    });
+    item.addEventListener('mouseleave', hideTip);
     col2.appendChild(item);
   });
+
   leaderGrid.appendChild(col1);
   leaderGrid.appendChild(col2);
 
+  // 30日趋势
   if (history.length >= 2) {
     const change30 = (history[history.length-1] - history[0]) / history[0] * 100;
     const high = Math.max(...history);
@@ -1337,7 +1358,37 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     }
   })();
 
-  console.log('✦ Glitch 风格 · 音效已加载 ✦');
+  // ==============================================================
+  // Tooltip（已存在，但确保函数可用）
+  // ==============================================================
+  const tip = document.getElementById('tooltip');
+  if (!tip) {
+    // 如果页面没有 tooltip 元素，创建一个（实际上HTML中已存在）
+    const newTip = document.createElement('div');
+    newTip.id = 'tooltip';
+    newTip.className = 'tooltip';
+    document.body.appendChild(newTip);
+  }
+  function showTip(e, html) {
+    const tipEl = document.getElementById('tooltip');
+    if (!tipEl) return;
+    tipEl.innerHTML = html;
+    tipEl.style.opacity = '1';
+    const tw = tipEl.offsetWidth, th = tipEl.offsetHeight;
+    let left = e.clientX - tw/2;
+    let top = e.clientY - th - 14;
+    if (left < 8) left = 8;
+    if (left + tw > window.innerWidth - 8) left = window.innerWidth - tw - 8;
+    if (top < 8) top = e.clientY + 14;
+    tipEl.style.left = left + 'px';
+    tipEl.style.top = top + 'px';
+  }
+  function hideTip() {
+    const tipEl = document.getElementById('tooltip');
+    if (tipEl) tipEl.style.opacity = '0';
+  }
+
+  console.log('✦ Glitch 风格 · 音效已加载 · 领涨领跌悬浮提示已启用 ✦');
 </script>
 </body>
 </html>
