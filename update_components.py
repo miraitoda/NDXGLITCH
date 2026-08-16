@@ -4,21 +4,23 @@
 """
 Nasdaq-100 Auto Updater
 =======================
+
 Data sources:
-- Nasdaq API: current constituents (ticker, name)
-- Slickcharts: QQQ/NDX weights
-- Built-in fallback: cached weights + sector map
+- Nasdaq API: current Nasdaq-100 constituents (ticker + name)
+- Slickcharts: QQQ weights via HTML scraping
+- Built-in fallback: cached weights + sector mapping (last resort)
 
 Features:
 - Auto-add/remove constituents
 - Auto-backup
 - Data validation
 - Full logging
-- Never fails completely (uses fallback weights if sources down)
+- Works on GitHub Actions (no Tiingo/Yahoo 403 issues)
 """
 
 import os
 import re
+import json
 import shutil
 import logging
 from datetime import datetime
@@ -33,6 +35,7 @@ from bs4 import BeautifulSoup
 # ============================================================
 
 BASE_DIR = Path(__file__).resolve().parent
+
 OUTPUT_FILE = BASE_DIR / "ndx_components.py"
 BACKUP_DIR = BASE_DIR / "backup_ndx"
 LOG_FILE = BASE_DIR / "update_ndx.log"
@@ -41,24 +44,22 @@ NASDAQ_URL = "https://api.nasdaq.com/api/quote/list-type/nasdaq100"
 SLICKCHARTS_URL = "https://www.slickcharts.com/nasdaq100"
 
 USER_AGENT = (
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/126.0.0.0 Safari/537.36"
+    "Chrome/151.0.0.0 Safari/537.36"
 )
 
 HEADERS = {
     "User-Agent": USER_AGENT,
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
-    "Accept-Encoding": "gzip, deflate, br",
-    "DNT": "1",
-    "Connection": "keep-alive",
-    "Upgrade-Insecure-Requests": "1",
+    "Referer": "https://www.google.com/",
 }
 
 
 # ============================================================
-# Built-in Fallback Data (last updated: 2026-08-16)
+# Built-in fallback data (2026-08-16 snapshot)
+# Used when Slickcharts scraping fails
 # ============================================================
 
 FALLBACK_WEIGHTS = {
@@ -102,33 +103,36 @@ SECTOR_MAP = {
     "MPWR": "Technology", "TER": "Technology", "NXPI": "Technology",
     "MCHP": "Technology", "ALAB": "Technology", "ADSK": "Technology",
     "PYPL": "Technology", "WDAY": "Technology", "DDOG": "Technology",
-    "LITE": "Technology", "NBIS": "Communication Services", "CRWV": "Technology",
-    "PLTR": "Technology", "PANW": "Technology", "CRWD": "Technology",
-    "INTU": "Technology", "MSTR": "Technology", "GOOGL": "Communication Services",
-    "GOOG": "Communication Services", "META": "Communication Services",
-    "NFLX": "Communication Services", "CMCSA": "Communication Services",
-    "TTWO": "Communication Services", "TRI": "Communication Services",
-    "WBD": "Communication Services", "TMUS": "Communication Services",
+    "LITE": "Technology", "NBIS": "Communication Services",
+    "CRWV": "Technology", "PLTR": "Technology", "PANW": "Technology",
+    "CRWD": "Technology", "INTU": "Technology", "MSTR": "Technology",
+    "GOOGL": "Communication Services", "GOOG": "Communication Services",
+    "META": "Communication Services", "NFLX": "Communication Services",
+    "CMCSA": "Communication Services", "TTWO": "Communication Services",
+    "TRI": "Communication Services", "WBD": "Communication Services",
+    "TMUS": "Communication Services",
     "AMZN": "Consumer Discretionary", "TSLA": "Consumer Discretionary",
     "WMT": "Consumer Discretionary", "COST": "Consumer Discretionary",
     "SBUX": "Consumer Discretionary", "PDD": "Consumer Discretionary",
     "ABNB": "Consumer Discretionary", "DASH": "Consumer Discretionary",
     "MELI": "Consumer Discretionary", "MAR": "Consumer Discretionary",
     "ROST": "Consumer Discretionary", "BKNG": "Consumer Discretionary",
-    "ORLY": "Consumer Discretionary", "SHOP": "Consumer Discretionary",
-    "SPCX": "Industrials", "PEP": "Consumer Staples", "MNST": "Consumer Staples",
-    "MDLZ": "Consumer Staples", "KDP": "Consumer Staples", "CCEP": "Consumer Staples",
-    "KHC": "Consumer Staples", "AMGN": "Health Care", "GILD": "Health Care",
-    "ISRG": "Health Care", "VRTX": "Health Care", "REGN": "Health Care",
-    "IDXX": "Health Care", "DXCM": "Health Care", "GEHC": "Health Care",
-    "ALNY": "Health Care", "LIN": "Industrials", "STX": "Industrials",
-    "ADP": "Industrials", "CSX": "Industrials", "CTAS": "Industrials",
-    "ODFL": "Industrials", "PCAR": "Industrials", "FAST": "Industrials",
-    "HON": "Industrials", "HONA": "Industrials", "BKR": "Industrials",
-    "FER": "Industrials", "RKLB": "Industrials", "AXON": "Industrials",
-    "ROP": "Industrials", "CPRT": "Industrials", "PAYX": "Industrials",
-    "CEG": "Utilities", "AEP": "Utilities", "XEL": "Utilities", "EXC": "Utilities",
-    "FANG": "Energy",
+    "ORLY": "Consumer Discretionary", "SPCX": "Industrials",
+    "SHOP": "Consumer Discretionary",
+    "PEP": "Consumer Staples", "MNST": "Consumer Staples",
+    "MDLZ": "Consumer Staples", "KDP": "Consumer Staples",
+    "CCEP": "Consumer Staples", "KHC": "Consumer Staples",
+    "AMGN": "Health Care", "GILD": "Health Care", "ISRG": "Health Care",
+    "VRTX": "Health Care", "REGN": "Health Care", "IDXX": "Health Care",
+    "DXCM": "Health Care", "GEHC": "Health Care", "ALNY": "Health Care",
+    "LIN": "Industrials", "STX": "Industrials", "ADP": "Industrials",
+    "CSX": "Industrials", "CTAS": "Industrials", "ODFL": "Industrials",
+    "PCAR": "Industrials", "FAST": "Industrials", "HON": "Industrials",
+    "HONA": "Industrials", "BKR": "Industrials", "FER": "Industrials",
+    "RKLB": "Industrials", "AXON": "Industrials", "ROP": "Industrials",
+    "CPRT": "Industrials", "PAYX": "Industrials",
+    "CEG": "Utilities", "AEP": "Utilities", "XEL": "Utilities",
+    "EXC": "Utilities", "FANG": "Energy",
 }
 
 
@@ -168,8 +172,9 @@ def clean_ticker(ticker):
 def clean_name(name):
     if not name:
         return ""
-    name = str(name).strip().replace('"', "'").replace("\n", " ")
-    return re.sub(r"\s+", " ", name)
+    name = str(name).strip().replace('"', "'")
+    name = re.sub(r"\s+", " ", name)
+    return name
 
 
 # ============================================================
@@ -178,19 +183,23 @@ def clean_name(name):
 
 def parse_old_components():
     if not OUTPUT_FILE.exists():
+        logging.warning("Old file not found: %s", OUTPUT_FILE)
         return {}
     try:
         content = OUTPUT_FILE.read_text(encoding="utf-8")
-        pattern = re.compile(r'\(\s*"([^"]+)"\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"\s*,\s*([\d.]+)\s*\)')
+        pattern = re.compile(
+            r'\(\s*"([^"]+)"\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"\s*,\s*([\d.]+)\s*\)'
+        )
         result = {}
-        for m in pattern.finditer(content):
-            ticker = clean_ticker(m.group(1))
-            if ticker:
-                result[ticker] = {
-                    "name": clean_name(m.group(2)),
-                    "sector": m.group(3),
-                    "weight": float(m.group(4)),
-                }
+        for match in pattern.finditer(content):
+            ticker = clean_ticker(match.group(1))
+            if not ticker:
+                continue
+            result[ticker] = {
+                "name": clean_name(match.group(2)),
+                "sector": match.group(3),
+                "weight": float(match.group(4)),
+            }
         logging.info("Read old data: %d stocks", len(result))
         return result
     except Exception as e:
@@ -203,12 +212,11 @@ def parse_old_components():
 # ============================================================
 
 def fetch_nasdaq_constituents():
-    logging.info("Fetching Nasdaq-100 constituents...")
+    logging.info("Fetching Nasdaq-100 constituents from Nasdaq API...")
     try:
-        resp = session.get(NASDAQ_URL, timeout=30)
-        resp.raise_for_status()
-        data = resp.json()
-
+        response = session.get(NASDAQ_URL, timeout=30)
+        response.raise_for_status()
+        data = response.json()
         rows = None
         if "data" in data:
             d = data["data"]
@@ -218,23 +226,19 @@ def fetch_nasdaq_constituents():
                 rows = d
             else:
                 rows = d.get("rows", [])
-
         if not rows:
-            raise RuntimeError("Empty data")
-
+            raise RuntimeError("Nasdaq returned empty data")
         result = {}
         for row in rows:
             ticker = clean_ticker(row.get("symbol"))
             name = clean_name(row.get("companyName") or row.get("name"))
-            if ticker:
-                result[ticker] = name
-
+            if not ticker:
+                continue
+            result[ticker] = {"name": name}
         if len(result) < 90:
-            raise RuntimeError(f"Only {len(result)} stocks")
-
+            raise RuntimeError("Nasdaq returned only %d stocks" % len(result))
         logging.info("Nasdaq: %d constituents", len(result))
         return result
-
     except Exception as e:
         logging.exception("Nasdaq fetch failed: %s", e)
         return {}
@@ -247,93 +251,46 @@ def fetch_nasdaq_constituents():
 def fetch_slickcharts_weights():
     logging.info("Fetching weights from Slickcharts...")
     try:
-        resp = session.get(SLICKCHARTS_URL, timeout=30)
-        resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "html.parser")
-
-        table = soup.find("table", {"class": "table"})
+        response = session.get(SLICKCHARTS_URL, timeout=30)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "html.parser")
+        table = soup.find("table", class_="table")
         if not table:
-            # fallback: any table with enough rows
-            tables = soup.find_all("table")
-            for t in tables:
-                if len(t.find_all("tr")) > 50:
-                    table = t
-                    break
-
-        if not table:
-            raise RuntimeError("No table found")
-
+            raise RuntimeError("Slickcharts table not found")
         weights = {}
-        for row in table.find_all("tr")[1:]:  # skip header
+        for row in table.find("tbody").find_all("tr"):
             cols = row.find_all("td")
-            if len(cols) >= 4:
-                # cols: [rank, name, ticker, weight, ...]
-                ticker = clean_ticker(cols[2].get_text(strip=True))
-                weight_text = cols[3].get_text(strip=True).replace("%", "")
-                if ticker:
-                    try:
-                        weight = float(weight_text)
-                        if weight > 0:
-                            weights[ticker] = round(weight, 2)
-                    except ValueError:
-                        continue
-
+            if len(cols) < 4:
+                continue
+            ticker = clean_ticker(cols[2].get_text(strip=True))
+            weight_text = cols[3].get_text(strip=True).replace("%", "")
+            if not ticker:
+                continue
+            try:
+                weight = float(weight_text)
+                if weight > 0:
+                    weights[ticker] = round(weight, 2)
+            except ValueError:
+                continue
         if len(weights) < 80:
-            raise RuntimeError(f"Only {len(weights)} weights")
-
+            raise RuntimeError("Slickcharts returned only %d weights" % len(weights))
         logging.info("Slickcharts: %d weights", len(weights))
         return weights
-
     except Exception as e:
         logging.exception("Slickcharts fetch failed: %s", e)
         return {}
 
 
 # ============================================================
-# Merge & Build
+# Get weights (primary + fallback)
 # ============================================================
 
-def build_final_data(constituents, weights, old_data):
-    final = {}
-    old_tickers = set(old_data.keys())
-    new_tickers = set(constituents.keys())
-
-    added = sorted(new_tickers - old_tickers)
-    removed = sorted(old_tickers - new_tickers)
-    fallback = []
-
-    for ticker, name in constituents.items():
-        if ticker in weights:
-            weight = weights[ticker]
-        elif ticker in old_data:
-            weight = old_data[ticker]["weight"]
-            fallback.append(ticker)
-            logging.warning("%s: using old weight %.2f%%", ticker, weight)
-        elif ticker in FALLBACK_WEIGHTS:
-            weight = FALLBACK_WEIGHTS[ticker]
-            fallback.append(ticker)
-            logging.warning("%s: using built-in fallback weight %.2f%%", ticker, weight)
-        else:
-            logging.warning("%s: no weight data, skipping", ticker)
-            continue
-
-        if not name:
-            name = old_data.get(ticker, {}).get("name", ticker)
-
-        sector = SECTOR_MAP.get(ticker)
-        if not sector and ticker in old_data:
-            sector = old_data[ticker]["sector"]
-        if not sector:
-            sector = "Unknown"
-
-        final[ticker] = {
-            "name": name,
-            "sector": sector,
-            "weight": round(float(weight), 2),
-        }
-
-    logging.info("Added: %d, Removed: %d, Fallback: %d", len(added), len(removed), len(fallback))
-    return final
+def fetch_weights():
+    weights = fetch_slickcharts_weights()
+    if weights:
+        return weights
+    logging.warning("Slickcharts failed, using built-in fallback weights...")
+    return dict(FALLBACK_WEIGHTS)
 
 
 # ============================================================
@@ -342,86 +299,137 @@ def build_final_data(constituents, weights, old_data):
 
 def validate_data(data):
     if not data:
-        logging.error("Empty data")
+        logging.error("Final data is empty")
         return False
-
     count = len(data)
-    if count < 95:
-        logging.error("Count abnormal: %d", count)
+    logging.info("Validating: %d stocks", count)
+    if count < 95 or count > 110:
+        logging.error("Stock count abnormal: %d", count)
         return False
-
     for ticker, item in data.items():
         if item["weight"] <= 0:
-            logging.error("%s weight abnormal", ticker)
+            logging.error("%s weight abnormal: %.2f", ticker, item["weight"])
             return False
-
-    total = sum(i["weight"] for i in data.values())
-    logging.info("Total weight: %.2f%%", total)
-
-    if total < 85 or total > 115:
-        logging.error("Total weight abnormal: %.2f%%", total)
+    total_weight = sum(item["weight"] for item in data.values())
+    logging.info("Total weight: %.2f%%", total_weight)
+    if total_weight < 85 or total_weight > 115:
+        logging.error("Total weight abnormal: %.2f%%", total_weight)
         return False
-
-    mx = max(i["weight"] for i in data.values())
-    if mx > 25:
-        logging.error("Max weight abnormal: %.2f%%", mx)
+    max_weight = max(item["weight"] for item in data.values())
+    if max_weight > 25:
+        logging.error("Max weight abnormal: %.2f%%", max_weight)
         return False
-
     logging.info("Validation passed")
     return True
 
 
 # ============================================================
-# Backup & Write
+# Merge data
+# ============================================================
+
+def build_final_data(constituents, weights, old_data):
+    final = {}
+    old_tickers = set(old_data.keys())
+    new_tickers = set(constituents.keys())
+    added = sorted(new_tickers - old_tickers)
+    removed = sorted(old_tickers - new_tickers)
+    fallback = []
+    for ticker, info in constituents.items():
+        name = info["name"]
+        if ticker in weights:
+            weight = weights[ticker]
+        elif ticker in old_data:
+            weight = old_data[ticker]["weight"]
+            fallback.append(ticker)
+            logging.warning("%s: using old weight %.2f%% (no new data)", ticker, weight)
+        elif ticker in FALLBACK_WEIGHTS:
+            weight = FALLBACK_WEIGHTS[ticker]
+            fallback.append(ticker)
+            logging.warning("%s: using fallback weight %.2f%%", ticker, weight)
+        else:
+            logging.warning("%s: new constituent but no weight, skipping", ticker)
+            continue
+        if not name and ticker in old_data:
+            name = old_data[ticker]["name"]
+        sector = old_data[ticker]["sector"] if ticker in old_data else SECTOR_MAP.get(ticker, "Unknown")
+        final[ticker] = {
+            "name": name,
+            "sector": sector,
+            "weight": round(float(weight), 2),
+        }
+    logging.info("Added: %d", len(added))
+    logging.info("Removed: %d", len(removed))
+    logging.info("Fallback weights: %d", len(fallback))
+    if added:
+        logging.info("Added stocks: %s", ", ".join(added))
+    if removed:
+        logging.info("Removed stocks: %s", ", ".join(removed))
+    still_missing = [t for t, v in final.items() if v["sector"] == "Unknown"]
+    if still_missing:
+        logging.warning("Unknown sector for: %s", ", ".join(still_missing))
+    return final
+
+
+# ============================================================
+# Backup
 # ============================================================
 
 def backup_old_file():
     if not OUTPUT_FILE.exists():
         return
     BACKUP_DIR.mkdir(parents=True, exist_ok=True)
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    dst = BACKUP_DIR / f"ndx_components_{ts}.py"
-    shutil.copy2(OUTPUT_FILE, dst)
-    logging.info("Backup: %s", dst)
-    # keep last 30
-    backups = sorted(BACKUP_DIR.glob("ndx_components_*.py"), key=lambda p: p.stat().st_mtime, reverse=True)
-    for old in backups[30:]:
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_file = BACKUP_DIR / "ndx_components_%s.py" % timestamp
+    shutil.copy2(OUTPUT_FILE, backup_file)
+    logging.info("Backup saved: %s", backup_file)
+    backups = sorted(BACKUP_DIR.glob("ndx_components_*.py"), key=lambda x: x.stat().st_mtime, reverse=True)
+    for old_backup in backups[30:]:
         try:
-            old.unlink()
+            old_backup.unlink()
         except Exception:
             pass
 
 
-def write_components(data):
-    items = sorted(data.items(), key=lambda x: x[1]["weight"], reverse=True)
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+# ============================================================
+# Write file (use .format() to avoid f-string backslash issues)
+# ============================================================
 
+def write_components(data):
+    sorted_items = sorted(data.items(), key=lambda x: x[1]["weight"], reverse=True)
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     lines = [
         "# Nasdaq-100 Constituents (Auto-Updated)",
-        f"# Updated: {now}",
+        "# Updated: %s" % now,
         "# Source: Nasdaq API + Slickcharts (with built-in fallback)",
         "#",
         "STOCKS = [",
     ]
-    for ticker, item in items:
-        lines.append(f'    (\"{ticker}\", \"{item[\"name\"]}\", \"{item[\"sector\"]}\", {item[\"weight\"]:.2f}),')
+    for ticker, item in sorted_items:
+        # Use .format() instead of f-string to avoid backslash issues
+        line = '    ("{t}", "{n}", "{s}", {w:.2f}),'.format(
+            t=ticker, n=item["name"], s=item["sector"], w=item["weight"]
+        )
+        lines.append(line)
     lines.append("]")
     lines.append("")
-    lines.append('SECTORS = sorted(set(s[2] for s in STOCKS))')
+    lines.append("SECTORS = sorted(set(s[2] for s in STOCKS))")
     lines.append("")
-    lines.append(f'LAST_UPDATE = \"{now}\"')
-    lines.append('DATA_SOURCE = \"Nasdaq + Slickcharts\"')
-
-    tmp = OUTPUT_FILE.with_suffix(".tmp")
+    lines.append("LAST_UPDATE = \"%s\"" % now)
+    lines.append('DATA_SOURCE = "Nasdaq + Slickcharts"')
+    content = "\n".join(lines)
+    temp_file = OUTPUT_FILE.with_suffix(".tmp")
     try:
-        tmp.write_text("\n".join(lines), encoding="utf-8")
-        tmp.replace(OUTPUT_FILE)
-        logging.info("Wrote %s (%d stocks)", OUTPUT_FILE, len(items))
+        temp_file.write_text(content, encoding="utf-8")
+        temp_file.replace(OUTPUT_FILE)
+        logging.info("Successfully wrote: %s (%d stocks)", OUTPUT_FILE, len(sorted_items))
         return True
     except Exception as e:
         logging.exception("Write failed: %s", e)
-        if tmp.exists():
-            tmp.unlink()
+        if temp_file.exists():
+            try:
+                temp_file.unlink()
+            except Exception:
+                pass
         return False
 
 
@@ -430,36 +438,42 @@ def write_components(data):
 # ============================================================
 
 def main():
+    print()
     print("=" * 65)
     print(" Nasdaq-100 Auto Updater")
     print("=" * 65)
-
+    logging.info("========== Update started ==========")
     old_data = parse_old_components()
-
     constituents = fetch_nasdaq_constituents()
     if not constituents:
-        print("❌ Nasdaq fetch failed")
+        logging.error("Failed to fetch Nasdaq constituents")
+        print("Nasdaq constituents fetch failed")
+        print("ndx_components.py will NOT be modified")
         return 1
-
-    weights = fetch_slickcharts_weights()
+    weights = fetch_weights()
     if not weights:
-        logging.warning("Using built-in fallback weights...")
-        weights = {}
-
+        logging.error("Failed to fetch weights from all sources")
+        print("All weight sources failed")
+        print("ndx_components.py will NOT be modified")
+        return 1
     final_data = build_final_data(constituents, weights, old_data)
-
     if not validate_data(final_data):
-        print("❌ Validation failed")
+        logging.error("Data validation failed")
+        print("Data validation failed")
+        print("ndx_components.py will NOT be modified")
         return 1
-
     backup_old_file()
-
     if not write_components(final_data):
-        print("❌ Write failed")
+        print("Write failed")
         return 1
-
-    print(" ✅ Update successful: %d constituents" % len(final_data))
+    print()
     print("=" * 65)
+    print(" Nasdaq-100 Update Successful")
+    print("=" * 65)
+    print("  Constituents: %d" % len(final_data))
+    print("  Output: %s" % OUTPUT_FILE)
+    print("=" * 65)
+    logging.info("========== Update successful ==========")
     return 0
 
 
