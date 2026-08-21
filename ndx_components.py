@@ -1,28 +1,28 @@
 # Nasdaq-100 Constituents (Auto-Updated)
-# Updated: 2026-08-20 21:19:47
+# Updated: 2026-08-21 21:15:19
 # Source: Nasdaq API + Schwab Official Top 20 + Estimates
 #
 STOCKS = [
-    ("NVDA", "NVIDIA Corporation Common Stock", "Technology", 8.36),
-    ("AAPL", "Apple Inc. Common Stock", "Technology", 7.23),
-    ("MSFT", "Microsoft Corporation Common Stock", "Technology", 5.68),
-    ("MU", "Micron Technology, Inc. Common Stock", "Technology", 4.65),
-    ("AMZN", "Amazon.com, Inc. Common Stock", "Consumer Discretionary", 4.43),
-    ("AMD", "Advanced Micro Devices, Inc. Common Stock", "Technology", 3.47),
-    ("GOOGL", "Alphabet Inc. Class A Common Stock", "Communication Services", 3.19),
-    ("GOOG", "Alphabet Inc. Class C Capital Stock", "Communication Services", 2.96),
-    ("AVGO", "Broadcom Inc. Common Stock", "Technology", 2.86),
-    ("TSLA", "Tesla, Inc. Common Stock", "Consumer Discretionary", 2.68),
-    ("META", "Meta Platforms, Inc. Class A Common Stock", "Communication Services", 2.56),
-    ("WMT", "Walmart Inc. Common Stock", "Consumer Staples", 2.47),
-    ("INTC", "Intel Corporation Common Stock", "Technology", 2.13),
-    ("CSCO", "Cisco Systems, Inc. Common Stock (DE)", "Technology", 1.93),
+    ("NVDA", "NVIDIA Corporation Common Stock", "Technology", 8.29),
+    ("AAPL", "Apple Inc. Common Stock", "Technology", 7.41),
+    ("MSFT", "Microsoft Corporation Common Stock", "Technology", 5.72),
+    ("MU", "Micron Technology, Inc. Common Stock", "Technology", 4.64),
+    ("AMZN", "Amazon.com, Inc. Common Stock", "Consumer Discretionary", 4.55),
+    ("AMD", "Advanced Micro Devices, Inc. Common Stock", "Technology", 3.35),
+    ("GOOGL", "Alphabet Inc. Class A Common Stock", "Communication Services", 3.20),
+    ("GOOG", "Alphabet Inc. Class C Capital Stock", "Communication Services", 2.97),
+    ("TSLA", "Tesla, Inc. Common Stock", "Consumer Discretionary", 2.80),
+    ("AVGO", "Broadcom Inc. Common Stock", "Technology", 2.74),
+    ("META", "Meta Platforms, Inc. Class A Common Stock", "Communication Services", 2.58),
+    ("WMT", "Walmart Inc. Common Stock", "Consumer Staples", 2.45),
+    ("INTC", "Intel Corporation Common Stock", "Technology", 2.05),
+    ("CSCO", "Cisco Systems, Inc. Common Stock (DE)", "Technology", 1.92),
     ("COST", "Costco Wholesale Corporation Common Stock", "Consumer Staples", 1.87),
-    ("LRCX", "Lam Research Corporation Common Stock", "Technology", 1.80),
-    ("AMAT", "Applied Materials, Inc. Common Stock", "Technology", 1.79),
-    ("PLTR", "Palantir Technologies Inc. Class A Common Stock", "Technology", 1.73),
-    ("NFLX", "Netflix, Inc. Common Stock", "Communication Services", 1.44),
-    ("PANW", "Palo Alto Networks, Inc. Common Stock", "Technology", 1.34),
+    ("PLTR", "Palantir Technologies Inc. Class A Common Stock", "Technology", 1.77),
+    ("AMAT", "Applied Materials, Inc. Common Stock", "Technology", 1.73),
+    ("LRCX", "Lam Research Corporation Common Stock", "Technology", 1.69),
+    ("NFLX", "Netflix, Inc. Common Stock", "Communication Services", 1.49),
+    ("PANW", "Palo Alto Networks, Inc. Common Stock", "Technology", 1.29),
     ("SHOP", "Shopify Inc. Class A Subordinate Voting Shares", "Consumer Discretionary", 1.14),
     ("QCOM", "QUALCOMM Incorporated Common Stock", "Technology", 1.04),
     ("TXN", "Texas Instruments Incorporated Common Stock", "Technology", 0.94),
@@ -30,12 +30,12 @@ STOCKS = [
     ("ADBE", "Adobe Inc. Common Stock", "Technology", 0.89),
     ("KLAC", "KLA Corporation Common Stock", "Technology", 0.87),
     ("INTU", "Intuit Inc. Common Stock", "Technology", 0.84),
-    ("APP", "Applovin Corporation Class A Common Stock", "Technology", 0.81),
-    ("ARM", "Arm Holdings plc American Depositary Shares", "Technology", 0.77),
-    ("SBUX", "Starbucks Corporation Common Stock", "Consumer Discretionary", 0.74),
-    ("PDD", "PDD Holdings Inc. American Depositary Shares", "Consumer Discretionary", 0.71),
-    ("ABNB", "Airbnb, Inc. Class A Common Stock", "Consumer Discretionary", 0.69),
-    ("ADP", "Automatic Data Processing, Inc. Common Stock", "Technology", 0.67),
+    ("APP", "Applovin Corporation Class A Common Stock", "Technology", 0.82),
+    ("ARM", "Arm Holdings plc American Depositary Shares", "Technology", 0.78),
+    ("SBUX", "Starbucks Corporation Common Stock", "Consumer Discretionary", 0.75),
+    ("PDD", "PDD Holdings Inc. American Depositary Shares", "Consumer Discretionary", 0.72),
+    ("ABNB", "Airbnb, Inc. Class A Common Stock", "Consumer Discretionary", 0.70),
+    ("ADP", "Automatic Data Processing, Inc. Common Stock", "Technology", 0.68),
     ("CEG", "Constellation Energy Corporation Common Stock", "Utilities", 0.65),
     ("SNDK", "Sandisk Corporation Common Stock", "Technology", 0.65),
     ("DASH", "DoorDash, Inc. Class A Common Stock", "Consumer Discretionary", 0.62),
@@ -109,5 +109,5 @@ STOCKS = [
 
 SECTORS = sorted(set(s[2] for s in STOCKS))
 
-LAST_UPDATE = "2026-08-20 21:19:47"
+LAST_UPDATE = "2026-08-21 21:15:19"
 DATA_SOURCE = "Nasdaq + Schwab"
