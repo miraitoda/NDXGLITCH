@@ -578,18 +578,18 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       padding: 0 4vw;
     }
 
-    .sticky-top .left { display: flex; align-items: baseline; gap: 1.2vw; flex-wrap: wrap; }
+    .sticky-top .left { display: flex; align-items: center; gap: 1.2vw; flex-wrap: wrap; }
     .sticky-top .price {
       font-size: clamp(18px, 3.8vw, 32px);
       font-weight: 900;
-      line-height: 1.1;
+      line-height: 1;
       color: var(--text-primary);
-      display: inline-block;
       white-space: nowrap;
     }
     .sticky-top .change {
       font-size: clamp(14px, 2.4vw, 20px);
       font-weight: 900;
+      line-height: 1;
     }
     .sticky-top .change.up { color: var(--color-rise); }
     .sticky-top .change.down { color: var(--color-fall); }
@@ -612,6 +612,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       padding: 0.2vh 1.2vw;
       border: 2px solid var(--badge-border);
       text-transform: uppercase;
+      line-height: 1;
     }
     .sticky-date {
       font-size: clamp(10px, 1.4vw, 15px);
@@ -619,6 +620,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       margin-left: 0.5vw;
       font-weight: 600;
       letter-spacing: 0.5px;
+      line-height: 1;
     }
     .theme-toggle, .mute-btn {
       background: var(--bg-card);
@@ -1188,10 +1190,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     function updateColors() {
       riseColor = getCSSVar('--color-rise') || '#FF5E00';
       fallColor = getCSSVar('--color-fall') || '#00BFFF';
-      // 更新方块颜色
-      for (let b of blocks) {
-        b.color = Math.random() > 0.15 ? (Math.random() > 0.5 ? riseColor : fallColor) : '#ffffff';
-      }
     }
 
     // ---- Grid ----
@@ -1216,106 +1214,17 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     }
 
     // ---- Floating blocks ----
-    class PixelBlock {
-      constructor() {
-        this.size = 16 + Math.floor(Math.random() * 25);
-        this.w = this.size;
-        this.h = this.size;
-        this.x = Math.random() * (W - this.w);
-        this.y = Math.random() * (H - this.h);
-        this.vx = (Math.random() - 0.5) * 0.2;
-        this.vy = (Math.random() - 0.5) * 0.2;
-        this.color = Math.random() > 0.15 ? (Math.random() > 0.5 ? riseColor : fallColor) : '#ffffff';
-        this.alpha = 0.25 + Math.random() * 0.3;
-        this.glow = 0;
-      }
-      update() {
-        this.x += this.vx;
-        this.y += this.vy;
-        if (this.x < 0) { this.x = 0; this.vx *= -1; this.glow = 1; }
-        if (this.x + this.w > W) { this.x = W - this.w; this.vx *= -1; this.glow = 1; }
-        if (this.y < 0) { this.y = 0; this.vy *= -1; this.glow = 1; }
-        if (this.y + this.h > H) { this.y = H - this.h; this.vy *= -1; this.glow = 1; }
-        this.glow *= 0.96;
-        if (this.glow < 0.02) this.glow = 0;
-      }
-      draw(ctx) {
-        ctx.save();
-        if (this.glow > 0.05) {
-          ctx.shadowColor = this.color;
-          ctx.shadowBlur = 20 * this.glow;
-        } else {
-          ctx.shadowColor = this.color;
-          ctx.shadowBlur = 6;
-        }
-        ctx.globalAlpha = this.alpha;
-        ctx.fillStyle = this.color;
-        ctx.fillRect(this.x, this.y, this.w, this.h);
-        ctx.shadowBlur = 0;
-        ctx.globalAlpha = 0.15;
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(this.x + 1, this.y + 1, this.w - 2, this.h - 2);
-        ctx.restore();
-      }
-    }
-
     let blocks = [];
-    function initBlocks(count = 28) {
-      blocks = [];
-      for (let i = 0; i < count; i++) blocks.push(new PixelBlock());
-    }
-    initBlocks();
-
     // ---- Fusion beams (克制) ----
-    function drawFusionEffects(ctx) {
-      for (let i = 0; i < blocks.length; i++) {
-        for (let j = i + 1; j < blocks.length; j++) {
-          const a = blocks[i];
-          const b = blocks[j];
-          const cx1 = a.x + a.w/2, cy1 = a.y + a.h/2;
-          const cx2 = b.x + b.w/2, cy2 = b.y + b.h/2;
-          const dx = cx2 - cx1, dy = cy2 - cy1;
-          const dist = Math.sqrt(dx*dx + dy*dy);
-          const maxDist = 150;
-          if (dist < maxDist) {
-            const intensity = 1 - (dist / maxDist);
-            if (a.color !== b.color && (a.color !== '#ffffff' && b.color !== '#ffffff')) continue;
-            ctx.save();
-            ctx.globalAlpha = intensity * 0.25;
-            ctx.shadowBlur = 0;
-            const grad = ctx.createLinearGradient(cx1, cy1, cx2, cy2);
-            grad.addColorStop(0, a.color);
-            grad.addColorStop(0.5, '#ffffff');
-            grad.addColorStop(1, b.color);
-            ctx.strokeStyle = grad;
-            ctx.lineWidth = 1 + intensity * 3;
-            ctx.beginPath();
-            ctx.moveTo(cx1, cy1);
-            ctx.lineTo(cx2, cy2);
-            ctx.stroke();
-            ctx.restore();
-          }
-        }
-      }
-    }
-
     function animate() {
       ctx.clearRect(0, 0, W, H);
       drawGrid();
-      for (let b of blocks) b.update();
-      drawFusionEffects(ctx);
-      for (let b of blocks) b.draw(ctx);
       requestAnimationFrame(animate);
     }
     animate();
 
     window.addEventListener('resize', () => {
       resizeCanvas();
-      for (let b of blocks) {
-        b.x = Math.min(b.x, W - b.w);
-        b.y = Math.min(b.y, H - b.h);
-      }
     });
 
     // ==============================================================
