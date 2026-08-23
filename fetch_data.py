@@ -641,6 +641,44 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       color: var(--text-primary);
     }
 
+    .nav-group {
+      display: flex;
+      align-items: center;
+      gap: 0.3vw;
+      margin-left: 0.5vw;
+    }
+    .nav-btn {
+      background: var(--bg-card);
+      border: 2px solid var(--border-color);
+      color: var(--text-secondary);
+      font-size: clamp(9px, 1.1vw, 13px);
+      padding: 0.3vh 0.8vw;
+      cursor: pointer;
+      font-weight: 700;
+      transition: all 0.2s;
+      font-family: inherit;
+      line-height: 1.5;
+      min-width: 2.2vw;
+      text-align: center;
+      box-shadow: 3px 3px 0 rgba(0,0,0,0.2);
+    }
+    html.light .nav-btn {
+      box-shadow: 3px 3px 0 rgba(0,0,0,0.05);
+    }
+    .nav-btn:hover:not(:disabled) {
+      background: var(--color-rise-bg);
+      border-color: var(--color-rise);
+      color: var(--text-primary);
+    }
+    .nav-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+    .nav-btn.today-btn {
+      font-size: clamp(8px, 1vw, 12px);
+      padding: 0.3vh 1vw;
+    }
+
     .sticky-bottom {
       position: fixed;
       bottom: 0;
@@ -999,6 +1037,9 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       .flow-row .weight { min-width: 6vw; }
       .flow-row .change { min-width: 8vw; }
       .theme-toggle, .mute-btn { font-size: 9px; padding: 0.1vh 2vw; }
+      .nav-btn { font-size: 9px; padding: 0.1vh 1.5vw; min-width: 5vw; }
+      .nav-btn.today-btn { font-size: 8px; padding: 0.1vh 2vw; }
+      .nav-group { gap: 1vw; margin-left: 0; }
       .trend-stats { gap: 1.5vw 2.5vw; }
       .trend-item .value { font-size: clamp(20px, 5vw, 32px); }
       .sticky-date { font-size: 9px; margin-left: 0.3vw; }
@@ -1037,6 +1078,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
         <span>Down <strong id="stickyDown" style="color:var(--color-fall);">--</strong></span>
         <span style="color:var(--text-dim);">|</span>
         <span style="color:var(--text-muted);">30D <strong id="stickyTrend" style="color:var(--color-rise);">--</strong></span>
+        <span class="nav-group" id="navGroup">
+          <button class="nav-btn" id="btnPrev" disabled>&lt;-</button>
+          <button class="nav-btn today-btn" id="btnToday" style="display:none;">TODAY</button>
+          <button class="nav-btn" id="btnNext" disabled>-&gt;</button>
+        </span>
         <button class="theme-toggle" id="themeToggle">Light</button>
         <button class="mute-btn" id="muteBtn">SFX</button>
       </div>
