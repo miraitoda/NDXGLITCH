@@ -1,5 +1,5 @@
 # Nasdaq-100 Constituents (Auto-Updated)
-# Updated: 2026-09-15 23:19:45
+# Updated: 2026-09-16 23:26:04
 # Source: Nasdaq API + Schwab Official Top 20 + Estimates
 #
 STOCKS = [
@@ -108,5 +108,5 @@ STOCKS = [
 
 SECTORS = sorted(set(s[2] for s in STOCKS))
 
-LAST_UPDATE = "2026-09-15 23:19:45"
+LAST_UPDATE = "2026-09-16 23:26:04"
 DATA_SOURCE = "Nasdaq + Schwab"
