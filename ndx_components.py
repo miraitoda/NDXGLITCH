@@ -1,33 +1,33 @@
 # Nasdaq-100 Constituents (Auto-Updated)
-# Updated: 2026-10-02 00:21:43
+# Updated: 2026-10-03 00:04:21
 # Source: Nasdaq API + Schwab Official Top 20 + Estimates
 #
 STOCKS = [
-    ("NVDA", "NVIDIA Corporation", "Technology", 8.38),
-    ("AAPL", "Apple Inc.", "Technology", 7.51),
-    ("MSFT", "Microsoft Corporation", "Technology", 5.75),
-    ("MU", "Micron Technology, Inc.", "Technology", 4.99),
-    ("AMD", "Advanced Micro Devices, Inc.", "Technology", 4.16),
-    ("AMZN", "Amazon.com, Inc.", "Consumer Discretionary", 4.04),
-    ("META", "Meta Platforms, Inc. Class A", "Communication Services", 3.23),
-    ("GOOGL", "Alphabet Inc. Class A", "Communication Services", 3.06),
-    ("TSLA", "Tesla, Inc.", "Consumer Discretionary", 2.85),
+    ("NVDA", "NVIDIA Corporation", "Technology", 8.32),
+    ("AAPL", "Apple Inc.", "Technology", 7.35),
+    ("MSFT", "Microsoft Corporation", "Technology", 5.76),
+    ("MU", "Micron Technology, Inc.", "Technology", 5.02),
+    ("AMD", "Advanced Micro Devices, Inc.", "Technology", 4.17),
+    ("AMZN", "Amazon.com, Inc.", "Consumer Discretionary", 4.07),
+    ("META", "Meta Platforms, Inc. Class A", "Communication Services", 3.26),
+    ("GOOGL", "Alphabet Inc. Class A", "Communication Services", 3.05),
     ("GOOG", "Alphabet Inc. Class C", "Communication Services", 2.85),
-    ("SPCX", "Space Exploration Technologies Corp. Class A", "Industrials", 2.62),
-    ("INTC", "Intel Corporation", "Technology", 2.56),
+    ("TSLA", "Tesla, Inc.", "Consumer Discretionary", 2.82),
+    ("SPCX", "Space Exploration Technologies Corp. Class A", "Industrials", 2.70),
+    ("INTC", "Intel Corporation", "Technology", 2.64),
     ("AVGO", "Broadcom Inc.", "Technology", 2.53),
-    ("WMT", "Walmart Inc.", "Consumer Staples", 2.22),
-    ("PLTR", "Palantir Technologies Inc. Class A", "Technology", 1.81),
+    ("WMT", "Walmart Inc.", "Consumer Staples", 2.11),
+    ("PLTR", "Palantir Technologies Inc. Class A", "Technology", 1.80),
     ("CSCO", "Cisco Systems, Inc. Common Stock (DE)", "Technology", 1.77),
-    ("COST", "Costco Wholesale Corporation", "Consumer Staples", 1.72),
-    ("LRCX", "Lam Research Corporation", "Technology", 1.65),
-    ("AMAT", "Applied Materials, Inc.", "Technology", 1.62),
-    ("PANW", "Palo Alto Networks, Inc.", "Technology", 1.34),
+    ("LRCX", "Lam Research Corporation", "Technology", 1.72),
+    ("AMAT", "Applied Materials, Inc.", "Technology", 1.70),
+    ("COST", "Costco Wholesale Corporation", "Consumer Staples", 1.69),
+    ("PANW", "Palo Alto Networks, Inc.", "Technology", 1.35),
     ("SHOP", "Shopify Inc. Class A Subordinate Voting Shares", "Consumer Discretionary", 1.08),
     ("QCOM", "QUALCOMM Incorporated", "Technology", 0.99),
     ("TXN", "Texas Instruments Incorporated", "Technology", 0.89),
     ("ASML", "ASML Holding N.V. New York Registry Shares", "Technology", 0.86),
-    ("ADBE", "Adobe Inc.", "Technology", 0.85),
+    ("ADBE", "Adobe Inc.", "Technology", 0.84),
     ("KLAC", "KLA Corporation", "Technology", 0.83),
     ("INTU", "Intuit Inc.", "Technology", 0.80),
     ("APP", "Applovin Corporation Class A", "Technology", 0.77),
@@ -63,10 +63,10 @@ STOCKS = [
     ("CTAS", "Cintas Corporation", "Industrials", 0.41),
     ("ROST", "Ross Stores, Inc.", "Consumer Discretionary", 0.40),
     ("BKNG", "Booking Holdings Inc.", "Consumer Discretionary", 0.39),
-    ("HON", "Honeywell International Inc.", "Industrials", 0.39),
     ("NBIS", "Nebius Group N.V. Class A Ordinary Shares", "Communication Services", 0.39),
     ("ORLY", "O'Reilly Automotive, Inc.", "Consumer Discretionary", 0.38),
     ("ISRG", "Intuitive Surgical, Inc.", "Health Care", 0.38),
+    ("HON", "Honeywell International Inc.", "Industrials", 0.38),
     ("WBD", "Warner Bros. Discovery, Inc. Series A", "Communication Services", 0.37),
     ("VRTX", "Vertex Pharmaceuticals Incorporated", "Health Care", 0.36),
     ("MPWR", "Monolithic Power Systems, Inc.", "Technology", 0.36),
@@ -108,5 +108,5 @@ STOCKS = [
 
 SECTORS = sorted(set(s[2] for s in STOCKS))
 
-LAST_UPDATE = "2026-10-02 00:21:43"
+LAST_UPDATE = "2026-10-03 00:04:21"
 DATA_SOURCE = "Nasdaq + Schwab"
