@@ -1,28 +1,28 @@
 # Nasdaq-100 Constituents (Auto-Updated)
-# Updated: 2026-10-08 00:36:52
+# Updated: 2026-10-09 00:51:52
 # Source: Nasdaq API + Schwab Official Top 20 + Estimates
 #
 STOCKS = [
-    ("NVDA", "NVIDIA Corporation", "Technology", 8.53),
-    ("AAPL", "Apple Inc.", "Technology", 7.19),
-    ("MSFT", "Microsoft Corporation", "Technology", 5.77),
-    ("MU", "Micron Technology, Inc.", "Technology", 4.91),
-    ("AMD", "Advanced Micro Devices, Inc.", "Technology", 4.21),
-    ("AMZN", "Amazon.com, Inc.", "Consumer Discretionary", 4.01),
-    ("META", "Meta Platforms, Inc. Class A", "Communication Services", 3.27),
+    ("NVDA", "NVIDIA Corporation", "Technology", 8.47),
+    ("AAPL", "Apple Inc.", "Technology", 7.17),
+    ("MSFT", "Microsoft Corporation", "Technology", 5.79),
+    ("MU", "Micron Technology, Inc.", "Technology", 4.80),
+    ("AMD", "Advanced Micro Devices, Inc.", "Technology", 4.31),
+    ("AMZN", "Amazon.com, Inc.", "Consumer Discretionary", 4.07),
+    ("META", "Meta Platforms, Inc. Class A", "Communication Services", 3.24),
     ("GOOGL", "Alphabet Inc. Class A", "Communication Services", 3.01),
     ("SPCX", "Space Exploration Technologies Corp. Class A", "Industrials", 3.00),
     ("TSLA", "Tesla, Inc.", "Consumer Discretionary", 2.95),
     ("GOOG", "Alphabet Inc. Class C", "Communication Services", 2.81),
-    ("AVGO", "Broadcom Inc.", "Technology", 2.55),
-    ("INTC", "Intel Corporation", "Technology", 2.50),
-    ("WMT", "Walmart Inc.", "Consumer Staples", 2.09),
-    ("CSCO", "Cisco Systems, Inc. Common Stock (DE)", "Technology", 1.82),
-    ("PLTR", "Palantir Technologies Inc. Class A", "Technology", 1.78),
-    ("LRCX", "Lam Research Corporation", "Technology", 1.77),
-    ("AMAT", "Applied Materials, Inc.", "Technology", 1.76),
-    ("COST", "Costco Wholesale Corporation", "Consumer Staples", 1.67),
-    ("PANW", "Palo Alto Networks, Inc.", "Technology", 1.35),
+    ("AVGO", "Broadcom Inc.", "Technology", 2.63),
+    ("INTC", "Intel Corporation", "Technology", 2.40),
+    ("WMT", "Walmart Inc.", "Consumer Staples", 2.12),
+    ("CSCO", "Cisco Systems, Inc. Common Stock (DE)", "Technology", 1.89),
+    ("PLTR", "Palantir Technologies Inc. Class A", "Technology", 1.80),
+    ("AMAT", "Applied Materials, Inc.", "Technology", 1.71),
+    ("LRCX", "Lam Research Corporation", "Technology", 1.70),
+    ("COST", "Costco Wholesale Corporation", "Consumer Staples", 1.69),
+    ("PANW", "Palo Alto Networks, Inc.", "Technology", 1.39),
     ("SHOP", "Shopify Inc. Class A Subordinate Voting Shares", "Consumer Discretionary", 1.08),
     ("QCOM", "QUALCOMM Incorporated", "Technology", 0.99),
     ("TXN", "Texas Instruments Incorporated", "Technology", 0.89),
@@ -107,5 +107,5 @@ STOCKS = [
 
 SECTORS = sorted(set(s[2] for s in STOCKS))
 
-LAST_UPDATE = "2026-10-08 00:36:52"
+LAST_UPDATE = "2026-10-09 00:51:52"
 DATA_SOURCE = "Nasdaq + Schwab"
