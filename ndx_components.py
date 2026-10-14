@@ -1,31 +1,31 @@
 # Nasdaq-100 Constituents (Auto-Updated)
-# Updated: 2026-10-13 02:19:16
+# Updated: 2026-10-14 00:02:09
 # Source: Nasdaq API + Schwab Official Top 20 + Estimates
 #
 STOCKS = [
-    ("NVDA", "NVIDIA Corporation", "Technology", 8.31),
-    ("AAPL", "Apple Inc.", "Technology", 7.45),
-    ("MSFT", "Microsoft Corporation", "Technology", 5.82),
-    ("MU", "Micron Technology, Inc.", "Technology", 4.84),
-    ("AMD", "Advanced Micro Devices, Inc.", "Technology", 4.19),
-    ("AMZN", "Amazon.com, Inc.", "Consumer Discretionary", 4.11),
-    ("META", "Meta Platforms, Inc. Class A", "Communication Services", 3.21),
-    ("GOOGL", "Alphabet Inc. Class A", "Communication Services", 3.06),
-    ("TSLA", "Tesla, Inc.", "Consumer Discretionary", 2.95),
-    ("GOOG", "Alphabet Inc. Class C", "Communication Services", 2.86),
-    ("SPCX", "Space Exploration Technologies Corp. Class A", "Industrials", 2.85),
-    ("AVGO", "Broadcom Inc.", "Technology", 2.57),
-    ("INTC", "Intel Corporation", "Technology", 2.33),
-    ("WMT", "Walmart Inc.", "Consumer Staples", 2.22),
-    ("PLTR", "Palantir Technologies Inc. Class A", "Technology", 1.89),
-    ("CSCO", "Cisco Systems, Inc. Common Stock (DE)", "Technology", 1.87),
-    ("COST", "Costco Wholesale Corporation", "Consumer Staples", 1.74),
-    ("AMAT", "Applied Materials, Inc.", "Technology", 1.67),
-    ("LRCX", "Lam Research Corporation", "Technology", 1.66),
-    ("PANW", "Palo Alto Networks, Inc.", "Technology", 1.34),
+    ("NVDA", "NVIDIA Corporation", "Technology", 8.41),
+    ("AAPL", "Apple Inc.", "Technology", 7.27),
+    ("MSFT", "Microsoft Corporation", "Technology", 5.74),
+    ("MU", "Micron Technology, Inc.", "Technology", 5.00),
+    ("AMD", "Advanced Micro Devices, Inc.", "Technology", 4.27),
+    ("AMZN", "Amazon.com, Inc.", "Consumer Discretionary", 4.05),
+    ("META", "Meta Platforms, Inc. Class A", "Communication Services", 3.23),
+    ("GOOGL", "Alphabet Inc. Class A", "Communication Services", 3.01),
+    ("TSLA", "Tesla, Inc.", "Consumer Discretionary", 2.91),
+    ("GOOG", "Alphabet Inc. Class C", "Communication Services", 2.81),
+    ("SPCX", "Space Exploration Technologies Corp. Class A", "Industrials", 2.81),
+    ("INTC", "Intel Corporation", "Technology", 2.58),
+    ("AVGO", "Broadcom Inc.", "Technology", 2.52),
+    ("WMT", "Walmart Inc.", "Consumer Staples", 2.09),
+    ("CSCO", "Cisco Systems, Inc. Common Stock (DE)", "Technology", 1.82),
+    ("LRCX", "Lam Research Corporation", "Technology", 1.79),
+    ("PLTR", "Palantir Technologies Inc. Class A", "Technology", 1.79),
+    ("AMAT", "Applied Materials, Inc.", "Technology", 1.77),
+    ("COST", "Costco Wholesale Corporation", "Consumer Staples", 1.68),
+    ("PANW", "Palo Alto Networks, Inc.", "Technology", 1.35),
     ("SHOP", "Shopify Inc. Class A Subordinate Voting Shares", "Consumer Discretionary", 1.08),
     ("QCOM", "QUALCOMM Incorporated", "Technology", 0.99),
-    ("TXN", "Texas Instruments Incorporated", "Technology", 0.89),
+    ("TXN", "Texas Instruments Incorporated", "Technology", 0.90),
     ("ASML", "ASML Holding N.V. New York Registry Shares", "Technology", 0.87),
     ("ADBE", "Adobe Inc.", "Technology", 0.85),
     ("KLAC", "KLA Corporation", "Technology", 0.83),
@@ -40,8 +40,8 @@ STOCKS = [
     ("SNDK", "Sandisk Corporation", "Technology", 0.61),
     ("DASH", "DoorDash, Inc. Class A", "Consumer Discretionary", 0.58),
     ("LIN", "Linde plc Ordinary Shares", "Industrials", 0.58),
-    ("MELI", "MercadoLibre, Inc.", "Consumer Discretionary", 0.56),
-    ("CRWD", "CrowdStrike Holdings, Inc. Class A", "Technology", 0.56),
+    ("MELI", "MercadoLibre, Inc.", "Consumer Discretionary", 0.57),
+    ("CRWD", "CrowdStrike Holdings, Inc. Class A", "Technology", 0.57),
     ("AMGN", "Amgen Inc.", "Health Care", 0.55),
     ("MAR", "Marriott International Class A", "Consumer Discretionary", 0.55),
     ("STX", "Seagate Technology Holdings PLC Ordinary Shares (Ireland)", "Technology", 0.55),
@@ -61,7 +61,7 @@ STOCKS = [
     ("GILD", "Gilead Sciences, Inc.", "Health Care", 0.42),
     ("SNPS", "Synopsys, Inc.", "Technology", 0.42),
     ("CTAS", "Cintas Corporation", "Industrials", 0.41),
-    ("ROST", "Ross Stores, Inc.", "Consumer Discretionary", 0.40),
+    ("ROST", "Ross Stores, Inc.", "Consumer Discretionary", 0.41),
     ("BKNG", "Booking Holdings Inc.", "Consumer Discretionary", 0.40),
     ("NBIS", "Nebius Group N.V. Class A Ordinary Shares", "Communication Services", 0.40),
     ("HON", "Honeywell International Inc.", "Industrials", 0.39),
@@ -108,5 +108,5 @@ STOCKS = [
 
 SECTORS = sorted(set(s[2] for s in STOCKS))
 
-LAST_UPDATE = "2026-10-13 02:19:16"
+LAST_UPDATE = "2026-10-14 00:02:09"
 DATA_SOURCE = "Nasdaq + Schwab"
