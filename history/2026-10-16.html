@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+  <title>NDX · PIXEL TERMINAL</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <style>
+    /* ================================================================
+       ROOT VARIABLES (由 Python 动态注入)
+    ================================================================ */
+    :root {
+      --bg-body: #0a0a0f;
+      --bg-sticky: rgba(10, 10, 15, 0.85);
+      --bg-card: rgba(255, 255, 255, 0.03);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --text-primary: #f0f0f0;
+      --text-secondary: #aabbcc;
+      --text-muted: #556677;
+      --text-dim: #334455;
+    }
+    html.light {
+      --bg-body: #e8ecf2;
+      --bg-sticky: rgba(255, 255, 255, 0.80);
+      --bg-card: rgba(0, 0, 0, 0.03);
+      --border-color: rgba(0, 0, 0, 0.10);
+      --text-primary: #0a0a12;
+      --text-secondary: #1e2a3a;
+      --text-muted: #6b7a8a;
+      --text-dim: #9aabbb;
+    }
+
+    /* ================================================================
+       GLOBAL RESET & PIXEL FONT
+    ================================================================ */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Press Start 2P', 'Courier New', monospace !important;
+      border-radius: 0 !important;
+      letter-spacing: 0.02em;
+    }
+
+    body {
+      background: var(--bg-body);
+      color: var(--text-primary);
+      padding-top: 110px;
+      padding-bottom: 60px;
+      padding-left: 4vw;
+      padding-right: 4vw;
+      min-height: 100vh;
+      overflow-x: hidden;
+      transition: background 0.4s, color 0.4s;
+      position: relative;
+    }
+
+    /* ================================================================
+       CANVAS BACKGROUND (像素网格 + 浮动块)
+    ================================================================ */
+    #pixelCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      display: block;
+    }
+
+    .scanlines {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0) 0px,
+        rgba(0, 0, 0, 0) 3px,
+        rgba(0, 0, 0, 0.06) 3px,
+        rgba(0, 0, 0, 0.06) 4px
+      );
+    }
+    html.light .scanlines {
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(255, 255, 255, 0) 0px,
+        rgba(255, 255, 255, 0) 3px,
+        rgba(255, 255, 255, 0.10) 3px,
+        rgba(255, 255, 255, 0.10) 4px
+      );
+    }
+
+    /* ================================================================
+       LAYOUT CONTAINER
+    ================================================================ */
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* ================================================================
+       STICKY HEADER / FOOTER
+    ================================================================ */
+    .sticky-top {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: var(--bg-sticky);
+      backdrop-filter: blur(8px);
+      border-bottom: 4px solid var(--border-color);
+      padding: 0.6vh 0 0.8vh 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4vh;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 4px 4px 0 rgba(0,0,0,0.3);
+    }
+    html.light .sticky-top {
+      box-shadow: 4px 4px 0 rgba(0,0,0,0.06);
+    }
+
+    .sticky-top .ticker-track-top {
+      overflow: hidden;
+      white-space: nowrap;
+      width: 100%;
+      padding: 0.2vh 0;
+      order: 0;
+    }
+    .sticky-top .ticker-track-top .track-inner {
+      display: flex;
+      gap: 2.5vw;
+      width: max-content;
+      font-size: clamp(11px, 1.6vw, 16px);
+      font-weight: 700;
+      animation: tickerScrollReverse 45s steps(60) infinite;
+    }
+    .sticky-top .ticker-track-top .track-inner span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6vw;
+    }
+    .sticky-top .ticker-track-top .track-inner .up { color: var(--color-rise); }
+    .sticky-top .ticker-track-top .track-inner .down { color: var(--color-fall); }
+    @keyframes tickerScrollReverse {
+      0% { transform: translateX(-50%); }
+      100% { transform: translateX(0); }
+    }
+
+    .sticky-top .top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5vh 1.5vw;
+      order: 1;
+      padding: 0 4vw;
+    }
+
+    .sticky-top .left { display: flex; align-items: center; gap: 1.2vw; flex-wrap: wrap; }
+    .sticky-top .price {
+      font-size: clamp(18px, 3.8vw, 32px);
+      font-weight: 900;
+      line-height: 1;
+      color: var(--text-primary);
+      white-space: nowrap;
+    }
+    .sticky-top .change {
+      font-size: clamp(14px, 2.4vw, 20px);
+      font-weight: 900;
+      line-height: 1;
+    }
+    .sticky-top .change.up { color: var(--color-rise); }
+    .sticky-top .change.down { color: var(--color-fall); }
+    .sticky-top .meta {
+      font-size: clamp(10px, 1.4vw, 13px);
+      font-weight: 700;
+      color: var(--text-muted);
+      display: flex;
+      gap: 1.2vw;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .sticky-top .meta strong { color: var(--text-primary); font-weight: 900; }
+    .sticky-top .badge {
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: var(--color-rise);
+      background: var(--color-rise-bg);
+      padding: 0.2vh 1.2vw;
+      border: 2px solid var(--badge-border);
+      text-transform: uppercase;
+      line-height: 1;
+    }
+    .sticky-date {
+      font-size: clamp(10px, 1.4vw, 15px);
+      color: var(--text-muted);
+      margin-left: 0.5vw;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      line-height: 1;
+    }
+    .theme-toggle, .mute-btn {
+      background: var(--bg-card);
+      border: 2px solid var(--border-color);
+      color: var(--text-secondary);
+      font-size: clamp(9px, 1.1vw, 13px);
+      padding: 0.3vh 1vw;
+      cursor: pointer;
+      font-weight: 700;
+      transition: all 0.2s;
+      box-shadow: 3px 3px 0 rgba(0,0,0,0.2);
+      line-height: 1.5;
+    }
+    html.light .theme-toggle, html.light .mute-btn {
+      box-shadow: 3px 3px 0 rgba(0,0,0,0.05);
+    }
+    .theme-toggle:hover, .mute-btn:hover {
+      border-color: var(--color-rise);
+      background: var(--color-rise-bg);
+      color: var(--text-primary);
+    }
+
+    .nav-group {
+      display: flex;
+      align-items: center;
+      gap: 0.3vw;
+      margin-left: 0.5vw;
+    }
+    .nav-btn {
+      background: var(--bg-card);
+      border: 2px solid var(--border-color);
+      color: var(--text-secondary);
+      font-size: clamp(9px, 1.1vw, 13px);
+      padding: 0.3vh 0.8vw;
+      cursor: pointer;
+      font-weight: 700;
+      transition: all 0.2s;
+      font-family: inherit;
+      line-height: 1.5;
+      min-width: 2.2vw;
+      text-align: center;
+      box-shadow: 3px 3px 0 rgba(0,0,0,0.2);
+    }
+    html.light .nav-btn {
+      box-shadow: 3px 3px 0 rgba(0,0,0,0.05);
+    }
+    .nav-btn:hover:not(:disabled) {
+      background: var(--color-rise-bg);
+      border-color: var(--color-rise);
+      color: var(--text-primary);
+    }
+    .nav-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+    .nav-btn.today-btn {
+      font-size: clamp(8px, 1vw, 12px);
+      padding: 0.3vh 1vw;
+    }
+
+    .sticky-bottom {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: var(--bg-sticky);
+      backdrop-filter: blur(8px);
+      border-top: 4px solid var(--border-color);
+      padding: 1vh 0;
+      overflow: hidden;
+      white-space: nowrap;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 4px 4px 0 rgba(0,0,0,0.3);
+    }
+    html.light .sticky-bottom {
+      box-shadow: 4px 4px 0 rgba(0,0,0,0.06);
+    }
+    .sticky-bottom .ticker-track {
+      display: flex;
+      gap: 2.5vw;
+      width: max-content;
+      font-size: clamp(11px, 1.6vw, 16px);
+      font-weight: 700;
+      animation: tickerScroll 55s steps(60) infinite;
+    }
+    .sticky-bottom .ticker-track span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6vw;
+    }
+    .sticky-bottom .ticker-track .up { color: var(--color-rise); }
+    .sticky-bottom .ticker-track .down { color: var(--color-fall); }
+    @keyframes tickerScroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    /* ================================================================
+       MAIN CONTENT BLOCKS
+    ================================================================ */
+    .block {
+      opacity: 0;
+      transform: translateY(30px) scale(0.98);
+      animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .block:nth-child(2) { animation-delay: 0.06s; }
+    .block:nth-child(3) { animation-delay: 0.12s; }
+    .block:nth-child(4) { animation-delay: 0.18s; }
+    .block:nth-child(5) { animation-delay: 0.24s; }
+    .block:nth-child(6) { animation-delay: 0.30s; }
+    .block:nth-child(7) { animation-delay: 0.36s; }
+    @keyframes slideUp {
+      0% { opacity: 0; transform: translateY(30px) scale(0.98); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .divider {
+      border: none;
+      height: 4px;
+      background: repeating-linear-gradient(
+        90deg,
+        var(--border-color) 0px,
+        var(--border-color) 6px,
+        transparent 6px,
+        transparent 12px
+      );
+      margin: 1vw 0;
+      transition: background 0.3s;
+    }
+
+    /* ================================================================
+       PRICE BLOCK - 价格独占一行，与涨跌幅有间距
+    ================================================================ */
+    .price-block {
+      padding: 2vw 0 0.5vw;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .price-block .price-top {
+      display: flex;
+      flex-direction: column;
+      gap: 3vh;
+      margin-bottom: 0.5vw;
+    }
+    .price-main {
+      font-size: clamp(56px, 17vw, 110px);
+      font-weight: 900;
+      letter-spacing: -2px;
+      line-height: 0.9;
+      display: block;
+      color: var(--text-primary);
+    }
+    .price-change {
+      font-size: clamp(26px, 6vw, 50px);
+      font-weight: 900;
+      display: block;
+      letter-spacing: -1px;
+    }
+    .price-change.up { color: var(--color-rise); }
+    .price-change.down { color: var(--color-fall); }
+
+    .price-sub {
+      font-size: clamp(11px, 1.6vw, 15px);
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      margin-top: clamp(6px, 1vw, 14px);
+      border-top: 2px solid var(--border-color);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2vw;
+      padding-top: clamp(6px, 1vw, 14px);
+    }
+    .price-sub strong { color: var(--text-primary); font-weight: 800; }
+
+    /* ================================================================
+       KPI, DIST, FLOW, LEADER, TREND (样式精简，与原逻辑兼容)
+    ================================================================ */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.8vw;
+      margin: 2vw 0;
+    }
+    .kpi-item {
+      background: var(--bg-card);
+      padding: 1.2vw 0.5vw;
+      text-align: center;
+      border: 2px solid var(--border-color);
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 3px 3px 0 rgba(0,0,0,0.2);
+    }
+    html.light .kpi-item { box-shadow: 3px 3px 0 rgba(0,0,0,0.05); }
+    .kpi-item .label {
+      font-size: clamp(8px, 1.1vw, 11px);
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .kpi-item .number {
+      font-size: clamp(28px, 7vw, 56px);
+      font-weight: 900;
+      line-height: 1.2;
+      letter-spacing: -2px;
+    }
+    .kpi-item .number.up { color: var(--color-rise); }
+    .kpi-item .number.down { color: var(--color-fall); }
+    .kpi-item .sub {
+      font-size: clamp(9px, 1.1vw, 13px);
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .dist-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6vw 1.2vw;
+      justify-content: flex-start;
+      margin: 1.2vw 0;
+    }
+    .dist-chip {
+      background: var(--bg-card);
+      padding: 0.4vw 1.4vw;
+      font-size: clamp(12px, 1.8vw, 18px);
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      border: 2px solid var(--border-color);
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 3px 3px 0 rgba(0,0,0,0.15);
+    }
+    html.light .dist-chip { box-shadow: 3px 3px 0 rgba(0,0,0,0.04); }
+    .dist-chip .num { font-size: 1.2em; margin-right: 0.2vw; }
+    .dist-chip.rise { color: var(--color-rise); border-color: var(--color-rise-bg); }
+    .dist-chip.fall { color: var(--color-fall); border-color: var(--color-fall-bg); }
+    .dist-total {
+      font-size: clamp(11px, 1.5vw, 17px);
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-top: 0.5vw;
+      letter-spacing: 1px;
+    }
+    .dist-total strong { font-weight: 900; }
+
+    .flow-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4vw;
+      margin: 1.5vw 0;
+    }
+    .flow-row {
+      display: flex;
+      align-items: baseline;
+      padding: 0.6vw 0.4vw;
+      border-bottom: 2px solid var(--border-color);
+      font-size: clamp(13px, 1.8vw, 21px);
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+    .flow-row .left-part {
+      display: flex;
+      align-items: baseline;
+      gap: 0.4vw;
+      flex: 1;
+    }
+    .flow-row .ticker { font-weight: 900; color: var(--text-primary); }
+    .flow-row .name {
+      color: var(--text-secondary);
+      font-weight: 500;
+      font-size: 0.65em;
+    }
+    .flow-row .right-part {
+      display: flex;
+      align-items: baseline;
+      gap: 2vw;
+      flex-shrink: 0;
+    }
+    .flow-row .weight {
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.65em;
+      text-align: right;
+      min-width: 4.5vw;
+    }
+    .flow-row .change {
+      font-weight: 900;
+      text-align: right;
+      min-width: 6vw;
+    }
+    .flow-row .change.up { color: var(--color-rise); }
+    .flow-row .change.down { color: var(--color-fall); }
+    .flow-row.others {
+      color: var(--text-muted);
+      font-size: 0.65em;
+      border-bottom: none;
+      padding-top: 1vw;
+      justify-content: center;
+    }
+
+    .leader-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2vw;
+      margin: 1.5vw 0;
+    }
+    .leader-col .col-title {
+      font-size: clamp(10px, 1.2vw, 14px);
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: var(--text-muted);
+      border-bottom: 4px solid var(--border-color);
+      padding-bottom: 0.3vw;
+      margin-bottom: 0.6vw;
+    }
+    .leader-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.3vw 0;
+      font-size: clamp(15px, 2.2vw, 26px);
+      font-weight: 800;
+      border-bottom: 2px solid var(--border-color);
+    }
+    .leader-item .val { font-weight: 900; }
+
+    .trend-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.2vw 3vw;
+      background: var(--bg-card);
+      padding: 1.2vw 2vw;
+      border: 2px solid var(--border-color);
+      margin: 1.2vw 0;
+      box-shadow: 3px 3px 0 rgba(0,0,0,0.15);
+    }
+    html.light .trend-stats { box-shadow: 3px 3px 0 rgba(0,0,0,0.04); }
+    .trend-item .label {
+      font-size: clamp(8px, 1vw, 12px);
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+    }
+    .trend-item .value {
+      font-size: clamp(26px, 5.5vw, 44px);
+      font-weight: 900;
+      line-height: 1.2;
+      letter-spacing: -1px;
+      white-space: nowrap;
+    }
+    .mini-prices {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1vw;
+      font-size: clamp(13px, 1.8vw, 20px);
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-top: 0.5vw;
+      letter-spacing: -0.3px;
+    }
+    .mini-prices .latest {
+      color: var(--text-primary);
+      background: var(--bg-card);
+      padding: 0 0.5vw;
+      border: 2px solid var(--border-color);
+    }
+
+    /* ================================================================
+       GLITCH & CURSOR
+    ================================================================ */
+    .glitch-text {
+      position: relative;
+      display: inline-block;
+      transition: color 0.1s;
+      cursor: default;
+    }
+    .glitch-text.active {
+      animation: modernGlitch 0.25s ease;
+    }
+    @keyframes modernGlitch {
+      0% { transform: translate(-3px, 2px); color: var(--glitch-color1); }
+      20% { transform: translate(4px, -3px); color: var(--glitch-color2); }
+      40% { transform: translate(-5px, 1px); color: var(--glitch-color1); }
+      60% { transform: translate(3px, -2px); color: var(--glitch-color2); }
+      80% { transform: translate(-2px, 3px); color: var(--glitch-color1); }
+      100% { transform: translate(0, 0); color: inherit; }
+    }
+
+    .cursor-blink::after {
+      content: '_';
+      display: inline-block;
+      animation: blink 1s step-end infinite;
+      color: var(--color-rise);
+      margin-left: 2px;
+      font-weight: 900;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* ================================================================
+       RESPONSIVE
+    ================================================================ */
+    @media (max-width: 600px) {
+      body { padding-top: 100px; padding-bottom: 50px; padding-left: 3vw; padding-right: 3vw; }
+      .sticky-top { padding: 0.3vh 0 0.5vh; }
+      .sticky-top .ticker-track-top .track-inner { font-size: 9px; gap: 3vw; }
+      .sticky-top .meta { gap: 1vw; }
+      .sticky-bottom .ticker-track { font-size: 10px; gap: 3vw; }
+      .sticky-top .top-row { padding: 0 3vw; }
+      .kpi-grid { gap: 1vw; }
+      .leader-grid { grid-template-columns: 1fr; gap: 4vw; }
+      .flow-row { font-size: 13px; }
+      .flow-row .right-part { gap: 2.5vw; }
+      .flow-row .weight { min-width: 6vw; }
+      .flow-row .change { min-width: 8vw; }
+      .theme-toggle, .mute-btn { font-size: 9px; padding: 0.1vh 2vw; }
+      .nav-btn { font-size: 9px; padding: 0.1vh 1.5vw; min-width: 5vw; }
+      .nav-btn.today-btn { font-size: 8px; padding: 0.1vh 2vw; }
+      .nav-group { gap: 1vw; margin-left: 0; }
+      .trend-stats { gap: 1.5vw 2.5vw; }
+      .trend-item .value { font-size: clamp(20px, 5vw, 32px); }
+      .sticky-date { font-size: 9px; margin-left: 0.3vw; }
+      .price-main { font-size: clamp(40px, 13vw, 72px); }
+      .price-change { font-size: clamp(20px, 5vw, 36px); }
+      .price-block .price-top { gap: 2.5vh; }
+      .price-sub { margin-top: clamp(8px, 2vw, 14px); }
+      .price-block { padding: 2.5vw 0 1vw; }
+      .divider { margin: 1.2vw 0; }
+    }
+
+    /* ===== 主题色占位（由 Python 注入） ===== */
+    :root {
+  --color-rise: #4682B4;
+  --color-fall: #FF1A1A;
+  --color-rise-bg: rgba(70,130,180,0.12);
+  --color-fall-bg: rgba(255,26,26,0.12);
+  --glitch-color1: #4682B4;
+  --glitch-color2: #FF1A1A;
+  --shadow-rise: 0 0 30px rgba(70,130,180,0.25);
+  --shadow-fall: 0 0 30px rgba(255,26,26,0.25);
+  --glow-rise: rgba(70,130,180,0.25);
+  --glow-fall: rgba(255,26,26,0.25);
+  --badge-border: rgba(70,130,180,0.3);
+}
+
+html.light {
+  --color-rise: #8bb2d2;
+  --color-fall: #ff8a8a;
+  --color-rise-bg: rgba(139,178,210,0.12);
+  --color-fall-bg: rgba(255,138,138,0.12);
+  --glitch-color1: #8bb2d2;
+  --glitch-color2: #ff8a8a;
+  --shadow-rise: 0 0 30px rgba(139,178,210,0.25);
+  --shadow-fall: 0 0 30px rgba(255,138,138,0.25);
+  --glow-rise: rgba(139,178,210,0.25);
+  --glow-fall: rgba(255,138,138,0.25);
+  --badge-border: rgba(139,178,210,0.3);
+}
+
+  </style>
+</head>
+<body>
+
+  <!-- CANVAS BACKGROUND -->
+  <canvas id="pixelCanvas"></canvas>
+  <div class="scanlines"></div>
+
+  <!-- ============================================================
+       STICKY TOP
+  ============================================================ -->
+  <div class="sticky-top" id="stickyTop">
+    <div class="ticker-track-top"><div class="track-inner" id="tickerTopInner"></div></div>
+    <div class="top-row">
+      <div class="left">
+        <span class="price glitch-text cursor-blink" id="stickyPrice">--</span>
+        <span class="change up glitch-text" id="stickyChange">--</span>
+        <span class="badge glitch-text">Closed</span>
+        <span class="sticky-date glitch-text" id="stickyDate">--</span>
+      </div>
+      <div class="meta">
+        <span>Up <strong id="stickyUp" style="color:var(--color-rise);">--</strong></span>
+        <span>Down <strong id="stickyDown" style="color:var(--color-fall);">--</strong></span>
+        <span style="color:var(--text-dim);">|</span>
+        <span style="color:var(--text-muted);">30D <strong id="stickyTrend" style="color:var(--color-rise);">--</strong></span>
+        <span class="nav-group" id="navGroup">
+          <button class="nav-btn" id="btnPrev" disabled>&lt;-</button>
+          <button class="nav-btn today-btn" id="btnToday" style="display:none;">TODAY</button>
+          <button class="nav-btn" id="btnNext" disabled>-&gt;</button>
+        </span>
+        <button class="theme-toggle" id="themeToggle">Light</button>
+        <button class="mute-btn" id="muteBtn">SFX</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       STICKY BOTTOM
+  ============================================================ -->
+  <div class="sticky-bottom"><div class="ticker-track" id="tickerBottomTrack"></div></div>
+
+  <!-- ============================================================
+       MAIN CONTENT
+  ============================================================ -->
+  <div class="container">
+
+    <div class="block price-block">
+      <div class="price-top">
+        <span class="price-main glitch-text" id="mainPrice">--</span>
+        <span class="price-change up glitch-text" id="mainChange">--</span>
+      </div>
+      <div class="price-sub">
+        <span>Prev Close <strong id="prevClose">--</strong></span>
+        <span>High <strong id="highPrice" style="color:var(--color-rise);">--</strong></span>
+        <span>Low <strong id="lowPrice" style="color:var(--color-fall);">--</strong></span>
+        <span style="color:var(--color-rise);">●</span> Closed
+      </div>
+    </div>
+    <hr class="divider" />
+
+    <div class="block kpi-grid">
+      <div class="kpi-item"><div class="label">Advancers</div><div class="number up glitch-text" id="kpiUp">--</div><div class="sub">Stocks</div></div>
+      <div class="kpi-item"><div class="label">Decliners</div><div class="number down glitch-text" id="kpiDown">--</div><div class="sub">Stocks</div></div>
+      <div class="kpi-item"><div class="label">30-Day Chg</div><div class="number up glitch-text" id="kpiTrend">--</div><div class="sub">Range</div></div>
+    </div>
+    <hr class="divider" />
+
+    <div class="block">
+      <div class="dist-grid" id="distGrid"></div>
+      <div class="dist-total">
+        Advancers <strong style="color:var(--color-rise);" class="glitch-text" id="distUp">--</strong>  ·  Decliners <strong style="color:var(--color-fall);" class="glitch-text" id="distDown">--</strong>  ·  Flat <strong style="color:var(--text-muted);" id="distFlat">--</strong>
+      </div>
+    </div>
+    <hr class="divider" />
+
+    <div class="block flow-list" id="flowList"></div>
+    <hr class="divider" />
+
+    <div class="block leader-grid" id="leaderGrid"></div>
+    <hr class="divider" />
+
+    <div class="block">
+      <div class="trend-stats">
+        <div class="trend-item"><div class="label">Range Change</div><div class="value glitch-text" id="trendChange" style="color:var(--color-rise);">--</div></div>
+        <div class="trend-item"><div class="label">High</div><div class="value glitch-text" id="trendHigh" style="color:var(--color-rise);">--</div></div>
+        <div class="trend-item"><div class="label">Low</div><div class="value glitch-text" id="trendLow" style="color:var(--color-fall);">--</div></div>
+        <div class="trend-item"><div class="label">Latest</div><div class="value glitch-text" id="trendLatest" style="color:var(--text-primary);">--</div></div>
+      </div>
+      <div class="mini-prices" id="miniPrices"></div>
+    </div>
+
+    <div style="text-align:center; color:var(--text-dim); font-size:9px; letter-spacing:2px; padding:3vw 0 1vw; border-top:4px solid var(--border-color); margin-top:2vw; font-weight:700; transition:color 0.3s,border-color 0.3s;">
+      DATA FROM YAHOO FINANCE · AUTO-UPDATED · FOR REFERENCE ONLY · <span id="buildTime"></span>
+    </div>
+  </div>
+
+  <script>
+    // ==============================================================
+    // DATA INJECTION
+    // ==============================================================
+    const DATA = {"index":{"price":29187.55,"prev_close":29935.6,"change":-2.5,"up":32,"down":68,"flat":0,"total":100},"stocks":[{"ticker":"NVDA","name":"NVIDIA Corporation","sector":"Technology","weight":8.18,"change":-1.43},{"ticker":"AAPL","name":"Apple Inc.","sector":"Technology","weight":7.7,"change":0.43},{"ticker":"MSFT","name":"Microsoft Corporation","sector":"Technology","weight":6.09,"change":-1.93},{"ticker":"MU","name":"Micron Technology, Inc.","sector":"Technology","weight":4.38,"change":-5.63},{"ticker":"AMZN","name":"Amazon.com, Inc.","sector":"Consumer Discretionary","weight":4.21,"change":-1.87},{"ticker":"AMD","name":"Advanced Micro Devices, Inc.","sector":"Technology","weight":3.96,"change":-5.95},{"ticker":"META","name":"Meta Platforms, Inc. Class A","sector":"Communication Services","weight":3.37,"change":-3.72},{"ticker":"GOOGL","name":"Alphabet Inc. Class A","sector":"Communication Services","weight":3.14,"change":-2.47},{"ticker":"TSLA","name":"Tesla, Inc.","sector":"Consumer Discretionary","weight":2.97,"change":-2.13},{"ticker":"GOOG","name":"Alphabet Inc. Class C","sector":"Communication Services","weight":2.92,"change":-2.32},{"ticker":"SPCX","name":"Space Exploration Technologies Corp. Class A","sector":"Industrials","weight":2.77,"change":-1.74},{"ticker":"AVGO","name":"Broadcom Inc.","sector":"Technology","weight":2.53,"change":-4.52},{"ticker":"WMT","name":"Walmart Inc.","sector":"Consumer Staples","weight":2.4,"change":0.8},{"ticker":"INTC","name":"Intel Corporation","sector":"Technology","weight":2.19,"change":-5.79},{"ticker":"PLTR","name":"Palantir Technologies Inc. Class A","sector":"Technology","weight":1.96,"change":-7.22},{"ticker":"CSCO","name":"Cisco Systems, Inc. Common Stock (DE)","sector":"Technology","weight":1.9,"change":-2.24},{"ticker":"COST","name":"Costco Wholesale Corporation","sector":"Consumer Staples","weight":1.85,"change":1.13},{"ticker":"LRCX","name":"Lam Research Corporation","sector":"Technology","weight":1.52,"change":-4.87},{"ticker":"AMAT","name":"Applied Materials, Inc.","sector":"Technology","weight":1.5,"change":-4.82},{"ticker":"PANW","name":"Palo Alto Networks, Inc.","sector":"Technology","weight":1.3,"change":-7.63},{"ticker":"SHOP","name":"Shopify Inc. Class A Subordinate Voting Shares","sector":"Consumer Discretionary","weight":1.09,"change":-4.84},{"ticker":"QCOM","name":"QUALCOMM Incorporated","sector":"Technology","weight":0.99,"change":-3.53},{"ticker":"TXN","name":"Texas Instruments Incorporated","sector":"Technology","weight":0.9,"change":-0.95},{"ticker":"ASML","name":"ASML Holding N.V. New York Registry Shares","sector":"Technology","weight":0.87,"change":-0.96},{"ticker":"ADBE","name":"Adobe Inc.","sector":"Technology","weight":0.85,"change":-2.57},{"ticker":"KLAC","name":"KLA Corporation","sector":"Technology","weight":0.83,"change":-5.0},{"ticker":"INTU","name":"Intuit Inc.","sector":"Technology","weight":0.8,"change":-1.52},{"ticker":"APP","name":"Applovin Corporation Class A","sector":"Technology","weight":0.77,"change":-4.71},{"ticker":"ARM","name":"Arm Holdings plc American Depositary Shares","sector":"Technology","weight":0.74,"change":-6.94},{"ticker":"SBUX","name":"Starbucks Corporation","sector":"Consumer Discretionary","weight":0.71,"change":0.66},{"ticker":"PDD","name":"PDD Holdings Inc. American Depositary Shares","sector":"Consumer Discretionary","weight":0.68,"change":-1.76},{"ticker":"ABNB","name":"Airbnb, Inc. Class A","sector":"Consumer Discretionary","weight":0.66,"change":-0.33},{"ticker":"ADP","name":"Automatic Data Processing, Inc.","sector":"Technology","weight":0.64,"change":1.14},{"ticker":"CEG","name":"Constellation Energy Corporation","sector":"Utilities","weight":0.61,"change":-1.32},{"ticker":"SNDK","name":"Sandisk Corporation","sector":"Technology","weight":0.61,"change":-6.85},{"ticker":"DASH","name":"DoorDash, Inc. Class A","sector":"Consumer Discretionary","weight":0.59,"change":-2.02},{"ticker":"LIN","name":"Linde plc Ordinary Shares","sector":"Industrials","weight":0.59,"change":1.06},{"ticker":"MELI","name":"MercadoLibre, Inc.","sector":"Consumer Discretionary","weight":0.57,"change":-1.24},{"ticker":"CRWD","name":"CrowdStrike Holdings, Inc. Class A","sector":"Technology","weight":0.57,"change":-7.02},{"ticker":"AMGN","name":"Amgen Inc.","sector":"Health Care","weight":0.55,"change":-0.35},{"ticker":"MAR","name":"Marriott International Class A","sector":"Consumer Discretionary","weight":0.55,"change":0.61},{"ticker":"STX","name":"Seagate Technology Holdings PLC Ordinary Shares (Ireland)","sector":"Technology","weight":0.55,"change":-7.5},{"ticker":"CSX","name":"CSX Corporation","sector":"Industrials","weight":0.53,"change":-0.02},{"ticker":"CMCSA","name":"Comcast Corporation Class A","sector":"Communication Services","weight":0.52,"change":0.6},{"ticker":"MRVL","name":"Marvell Technology, Inc.","sector":"Technology","weight":0.52,"change":-5.56},{"ticker":"TMUS","name":"T-Mobile US, Inc.","sector":"Communication Services","weight":0.51,"change":1.32},{"ticker":"DDOG","name":"Datadog, Inc. Class A","sector":"Technology","weight":0.5,"change":-7.19},{"ticker":"MNST","name":"Monster Beverage","sector":"Consumer Staples","weight":0.49,"change":0.86},{"ticker":"PEP","name":"PepsiCo, Inc.","sector":"Consumer Staples","weight":0.49,"change":2.42},{"ticker":"ADI","name":"Analog Devices, Inc.","sector":"Technology","weight":0.47,"change":-2.11},{"ticker":"CDNS","name":"Cadence Design Systems, Inc.","sector":"Technology","weight":0.47,"change":-1.5},{"ticker":"REGN","name":"Regeneron Pharmaceuticals, Inc.","sector":"Health Care","weight":0.45,"change":-0.7},{"ticker":"WDC","name":"Western Digital Corporation","sector":"Technology","weight":0.45,"change":-6.86},{"ticker":"LITE","name":"Lumentum Holdings Inc.","sector":"Technology","weight":0.44,"change":-5.22},{"ticker":"MDLZ","name":"Mondelez International, Inc. Class A","sector":"Consumer Staples","weight":0.43,"change":1.4},{"ticker":"CTAS","name":"Cintas Corporation","sector":"Industrials","weight":0.42,"change":0.3},{"ticker":"GILD","name":"Gilead Sciences, Inc.","sector":"Health Care","weight":0.42,"change":-0.75},{"ticker":"SNPS","name":"Synopsys, Inc.","sector":"Technology","weight":0.42,"change":-2.88},{"ticker":"ROST","name":"Ross Stores, Inc.","sector":"Consumer Discretionary","weight":0.41,"change":0.88},{"ticker":"BKNG","name":"Booking Holdings Inc.","sector":"Consumer Discretionary","weight":0.4,"change":-1.42},{"ticker":"NBIS","name":"Nebius Group N.V. Class A Ordinary Shares","sector":"Communication Services","weight":0.4,"change":-12.18},{"ticker":"HON","name":"Honeywell International Inc.","sector":"Industrials","weight":0.39,"change":0.43},{"ticker":"ORLY","name":"O'Reilly Automotive, Inc.","sector":"Consumer Discretionary","weight":0.38,"change":0.87},{"ticker":"ISRG","name":"Intuitive Surgical, Inc.","sector":"Health Care","weight":0.38,"change":-0.27},{"ticker":"VRTX","name":"Vertex Pharmaceuticals Incorporated","sector":"Health Care","weight":0.36,"change":-1.77},{"ticker":"MPWR","name":"Monolithic Power Systems, Inc.","sector":"Technology","weight":0.36,"change":-3.07},{"ticker":"PCAR","name":"PACCAR Inc.","sector":"Industrials","weight":0.35,"change":0.01},{"ticker":"AEP","name":"American Electric Power Company, Inc.","sector":"Utilities","weight":0.34,"change":2.29},{"ticker":"FTNT","name":"Fortinet, Inc.","sector":"Technology","weight":0.34,"change":-7.03},{"ticker":"TER","name":"Teradyne, Inc.","sector":"Technology","weight":0.33,"change":-5.31},{"ticker":"BKR","name":"Baker Hughes Company Class A","sector":"Energy","weight":0.32,"change":2.39},{"ticker":"NXPI","name":"NXP Semiconductors N.V.","sector":"Technology","weight":0.31,"change":-0.76},{"ticker":"FAST","name":"Fastenal Company","sector":"Industrials","weight":0.3,"change":1.27},{"ticker":"CRWV","name":"CoreWeave, Inc. Class A","sector":"Technology","weight":0.29,"change":-11.91},{"ticker":"FANG","name":"Diamondback Energy, Inc.","sector":"Energy","weight":0.28,"change":4.27},{"ticker":"ALAB","name":"Astera Labs, Inc.","sector":"Technology","weight":0.27,"change":-5.35},{"ticker":"ADSK","name":"Autodesk, Inc.","sector":"Technology","weight":0.26,"change":-2.15},{"ticker":"PYPL","name":"PayPal Holdings, Inc.","sector":"Technology","weight":0.25,"change":-0.8},{"ticker":"HONA","name":"Honeywell Aerospace Inc.","sector":"Industrials","weight":0.25,"change":3.05},{"ticker":"RKLB","name":"Rocket Lab Corporation","sector":"Industrials","weight":0.24,"change":-7.98},{"ticker":"AXON","name":"Axon Enterprise, Inc.","sector":"Industrials","weight":0.23,"change":-6.45},{"ticker":"XEL","name":"Xcel Energy Inc.","sector":"Utilities","weight":0.22,"change":1.58},{"ticker":"WDAY","name":"Workday, Inc. Class A","sector":"Technology","weight":0.21,"change":-2.96},{"ticker":"CCEP","name":"Coca-Cola Europacific Partners plc Ordinary Shares","sector":"Consumer Staples","weight":0.2,"change":2.4},{"ticker":"EXC","name":"Exelon Corporation","sector":"Utilities","weight":0.19,"change":2.4},{"ticker":"FER","name":"Ferrovial N.V. Ordinary Shares","sector":"Industrials","weight":0.18,"change":1.13},{"ticker":"TTWO","name":"Take-Two Interactive Software, Inc.","sector":"Communication Services","weight":0.17,"change":-1.96},{"ticker":"TRI","name":"Thomson Reuters Corporation Common Shares","sector":"Industrials","weight":0.16,"change":1.04},{"ticker":"ODFL","name":"Old Dominion Freight Line, Inc.","sector":"Industrials","weight":0.15,"change":-0.61},{"ticker":"IDXX","name":"IDEXX Laboratories, Inc.","sector":"Health Care","weight":0.14,"change":2.41},{"ticker":"PAYX","name":"Paychex, Inc.","sector":"Technology","weight":0.13,"change":0.77},{"ticker":"MCHP","name":"Microchip Technology Incorporated","sector":"Technology","weight":0.12,"change":-0.55},{"ticker":"KDP","name":"Keurig Dr Pepper Inc.","sector":"Consumer Staples","weight":0.11,"change":1.29},{"ticker":"ROP","name":"Roper Technologies, Inc.","sector":"Industrials","weight":0.1,"change":0.07},{"ticker":"MSTR","name":"Strategy Inc Common Stock","sector":"Technology","weight":0.09,"change":-9.56},{"ticker":"DXCM","name":"DexCom, Inc.","sector":"Health Care","weight":0.08,"change":-1.9},{"ticker":"GEHC","name":"GE HealthCare Technologies Inc.","sector":"Health Care","weight":0.08,"change":-1.11},{"ticker":"ALNY","name":"Alnylam Pharmaceuticals, Inc.","sector":"Health Care","weight":0.07,"change":-0.94},{"ticker":"CPRT","name":"Copart, Inc. (DE)","sector":"Industrials","weight":0.05,"change":0.43},{"ticker":"NFLX","name":"Netflix, Inc.","sector":"Communication Services","weight":0.01,"change":-2.86}],"pie_stocks":[{"ticker":"NVDA","name":"NVIDIA Corporation","sector":"Technology","weight":8.18,"change":-1.43},{"ticker":"AAPL","name":"Apple Inc.","sector":"Technology","weight":7.7,"change":0.43},{"ticker":"MSFT","name":"Microsoft Corporation","sector":"Technology","weight":6.09,"change":-1.93},{"ticker":"MU","name":"Micron Technology, Inc.","sector":"Technology","weight":4.38,"change":-5.63},{"ticker":"AMZN","name":"Amazon.com, Inc.","sector":"Consumer Discretionary","weight":4.21,"change":-1.87},{"ticker":"AMD","name":"Advanced Micro Devices, Inc.","sector":"Technology","weight":3.96,"change":-5.95},{"ticker":"META","name":"Meta Platforms, Inc. Class A","sector":"Communication Services","weight":3.37,"change":-3.72},{"ticker":"GOOGL","name":"Alphabet Inc. Class A","sector":"Communication Services","weight":3.14,"change":-2.47},{"ticker":"TSLA","name":"Tesla, Inc.","sector":"Consumer Discretionary","weight":2.97,"change":-2.13},{"ticker":"GOOG","name":"Alphabet Inc. Class C","sector":"Communication Services","weight":2.92,"change":-2.32},{"ticker":"SPCX","name":"Space Exploration Technologies Corp. Class A","sector":"Industrials","weight":2.77,"change":-1.74},{"ticker":"AVGO","name":"Broadcom Inc.","sector":"Technology","weight":2.53,"change":-4.52},{"ticker":"WMT","name":"Walmart Inc.","sector":"Consumer Staples","weight":2.4,"change":0.8},{"ticker":"INTC","name":"Intel Corporation","sector":"Technology","weight":2.19,"change":-5.79},{"ticker":"PLTR","name":"Palantir Technologies Inc. Class A","sector":"Technology","weight":1.96,"change":-7.22},{"ticker":"其他","name":"其他85只","sector":"","weight":41.22,"change":-2.33}],"sectors":[{"name":"Technology","weight":58.56,"change":-3.34,"count":43},{"name":"Consumer Discretionary","weight":13.22,"change":-1.65,"count":12},{"name":"Communication Services","weight":11.04,"change":-2.84,"count":8},{"name":"Industrials","weight":6.71,"change":-0.87,"count":15},{"name":"Consumer Staples","weight":5.97,"change":1.15,"count":7},{"name":"Health Care","weight":2.53,"change":-0.61,"count":9},{"name":"Utilities","weight":1.36,"change":0.57,"count":4},{"name":"Energy","weight":0.6,"change":3.27,"count":2}],"bins":{"labels":["<-3%","-3~-2%","-2~-1%","-1~0%","0~1%","1~2%","2~3%",">3%"],"counts":[30,11,14,13,14,10,6,2]},"history":[29482.32,29544.15,29507.7,29421.55,29103.51,29368.44,29127.16,28937.84,28945.06,29446.98,29644.17,30482.35,30732.4,30470.29,30478.86,30608.13,30276.81,30339.33,30408.5,30501.56,30807.93,31076.44,31224.47,31160.08,30725.81,30883.15,30664.7,30569.48,29950.82,29935.6],"date":"2026-10-16","theme_css":":root {\n  --color-rise: #4682B4;\n  --color-fall: #FF1A1A;\n  --color-rise-bg: rgba(70,130,180,0.12);\n  --color-fall-bg: rgba(255,26,26,0.12);\n  --glitch-color1: #4682B4;\n  --glitch-color2: #FF1A1A;\n  --shadow-rise: 0 0 30px rgba(70,130,180,0.25);\n  --shadow-fall: 0 0 30px rgba(255,26,26,0.25);\n  --glow-rise: rgba(70,130,180,0.25);\n  --glow-fall: rgba(255,26,26,0.25);\n  --badge-border: rgba(70,130,180,0.3);\n}\n\nhtml.light {\n  --color-rise: #8bb2d2;\n  --color-fall: #ff8a8a;\n  --color-rise-bg: rgba(139,178,210,0.12);\n  --color-fall-bg: rgba(255,138,138,0.12);\n  --glitch-color1: #8bb2d2;\n  --glitch-color2: #ff8a8a;\n  --shadow-rise: 0 0 30px rgba(139,178,210,0.25);\n  --shadow-fall: 0 0 30px rgba(255,138,138,0.25);\n  --glow-rise: rgba(139,178,210,0.25);\n  --glow-fall: rgba(255,138,138,0.25);\n  --badge-border: rgba(139,178,210,0.3);\n}\n","theme_idx":15,"build_time":"2026-10-16 23:33:08"};
+    const HISTORY_DATES = ["2026-07-17", "2026-07-20", "2026-07-21", "2026-07-22", "2026-07-23", "2026-07-24", "2026-07-27", "2026-07-28", "2026-07-29", "2026-07-30", "2026-07-31", "2026-08-03", "2026-08-04", "2026-08-05", "2026-08-06", "2026-08-07", "2026-08-10", "2026-08-11", "2026-08-12", "2026-08-13", "2026-08-14", "2026-08-15", "2026-08-16", "2026-08-17", "2026-08-18", "2026-08-19", "2026-08-20", "2026-08-21", "2026-08-23", "2026-08-24", "2026-08-25", "2026-08-27", "2026-08-28", "2026-08-29", "2026-09-01", "2026-09-02", "2026-09-03", "2026-09-04", "2026-09-07", "2026-09-08", "2026-09-09", "2026-09-10", "2026-09-11", "2026-09-14", "2026-09-15", "2026-09-16", "2026-09-17", "2026-09-18", "2026-09-22", "2026-09-23", "2026-09-24", "2026-09-25", "2026-09-29", "2026-09-30", "2026-10-01", "2026-10-02", "2026-10-03", "2026-10-06", "2026-10-07", "2026-10-08", "2026-10-09", "2026-10-10", "2026-10-13", "2026-10-14", "2026-10-15", "2026-10-16"];
+    const IS_HISTORY = true;
+
+    const idx = DATA.index;
+    const stocks = DATA.stocks;
+    const history = DATA.history;
+
+    function fmtPct(c) { return (c >= 0 ? '+' : '') + c.toFixed(2) + '%'; }
+    function cls(c) { return c >= 0 ? 'up' : 'down'; }
+
+    // ==============================================================
+    // CANVAS BACKGROUND: Pixel grid + floating blocks
+    // ==============================================================
+    const canvas = document.getElementById('pixelCanvas');
+    const ctx = canvas.getContext('2d');
+    let W, H;
+
+    function resizeCanvas() {
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function getCSSVar(name) {
+      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
+
+    let riseColor = getCSSVar('--color-rise') || '#FF5E00';
+    let fallColor = getCSSVar('--color-fall') || '#00BFFF';
+
+    function updateColors() {
+      riseColor = getCSSVar('--color-rise') || '#FF5E00';
+      fallColor = getCSSVar('--color-fall') || '#00BFFF';
+    }
+
+    // ---- Grid ----
+    function drawGrid() {
+      const step = 32;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= W; x += step) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, H);
+        ctx.stroke();
+      }
+      for (let y = 0; y <= H; y += step) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(W, y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // ---- Floating blocks ----
+    let blocks = [];
+    // ---- Fusion beams (克制) ----
+    function animate() {
+      ctx.clearRect(0, 0, W, H);
+      drawGrid();
+      requestAnimationFrame(animate);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      resizeCanvas();
+    });
+
+    // ==============================================================
+    // THEME TOGGLE
+    // ==============================================================
+    const toggleBtn = document.getElementById('themeToggle');
+    const htmlEl = document.documentElement;
+    let useLight = localStorage.getItem('pixelTheme') === 'light' ||
+      (localStorage.getItem('pixelTheme') === null && window.matchMedia('(prefers-color-scheme: light)').matches);
+
+    if (useLight) { htmlEl.classList.add('light'); toggleBtn.textContent = 'Dark'; }
+    else { htmlEl.classList.remove('light'); toggleBtn.textContent = 'Light'; }
+
+    toggleBtn.addEventListener('click', () => {
+      const isLight = htmlEl.classList.toggle('light');
+      localStorage.setItem('pixelTheme', isLight ? 'light' : 'dark');
+      toggleBtn.textContent = isLight ? 'Dark' : 'Light';
+      updateColors();
+      playPixelSound('switch');
+    });
+
+    // ==============================================================
+    // 8-BIT PIXEL SFX ENGINE
+    // ==============================================================
+    let audioCtx = null;
+    let isMuted = localStorage.getItem('pixelMuted') === 'true';
+    let audioReady = false;
+
+    function initAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume().then(() => { audioReady = true; }).catch(() => {});
+      else audioReady = true;
+    }
+
+    function playPixelSound(type) {
+      if (isMuted || !audioReady) return;
+      try {
+        const now = audioCtx.currentTime;
+        if (audioCtx.state !== 'running') return;
+
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'square';
+
+        let freq = 800, duration = 0.08, volume = 0.08;
+
+        switch (type) {
+          case 'burst':
+            freq = 1200 + Math.random() * 400;
+            duration = 0.06;
+            volume = 0.06;
+            osc.type = Math.random() > 0.5 ? 'square' : 'sawtooth';
+            break;
+          case 'switch':
+            osc.frequency.setValueAtTime(523, now);
+            gain.gain.setValueAtTime(0.08, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+            osc.start(now);
+            osc.stop(now + 0.08);
+            const osc2 = audioCtx.createOscillator();
+            const gain2 = audioCtx.createGain();
+            osc2.type = 'square';
+            osc2.frequency.setValueAtTime(659, now + 0.08);
+            gain2.gain.setValueAtTime(0.08, now + 0.08);
+            gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+            osc2.connect(gain2);
+            gain2.connect(audioCtx.destination);
+            osc2.start(now + 0.08);
+            osc2.stop(now + 0.16);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            return;
+          case 'tick':
+            freq = 600 + Math.random() * 300;
+            duration = 0.04;
+            volume = 0.04;
+            break;
+          default:
+            freq = 800;
+            duration = 0.06;
+            volume = 0.06;
+        }
+
+        osc.frequency.setValueAtTime(freq, now);
+        gain.gain.setValueAtTime(volume, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + duration);
+      } catch (e) {}
+    }
+
+    const muteBtn = document.getElementById('muteBtn');
+    muteBtn.textContent = isMuted ? 'Mute' : 'SFX';
+    muteBtn.addEventListener('click', () => {
+      isMuted = !isMuted;
+      localStorage.setItem('pixelMuted', isMuted ? 'true' : 'false');
+      muteBtn.textContent = isMuted ? 'Mute' : 'SFX';
+      if (!isMuted) { initAudio(); playPixelSound('switch'); }
+    });
+
+    document.addEventListener('click', () => { if (!audioReady) { initAudio(); if (!isMuted) playPixelSound('burst'); } }, { once: true });
+
+    // ==============================================================
+    // GLITCH ENGINE
+    // ==============================================================
+    const glitchEls = document.querySelectorAll('.glitch-text');
+    function triggerGlitch(el) {
+      if (!el) return;
+      playPixelSound('burst');
+      el.classList.remove('active');
+      void el.offsetWidth;
+      el.classList.add('active');
+      setTimeout(() => el.classList.remove('active'), 280);
+    }
+    glitchEls.forEach(el => el.addEventListener('mouseenter', function() { triggerGlitch(this); }));
+    function storm() {
+      const count = 1 + Math.floor(Math.random() * 3);
+      for (let i=0; i<count; i++) {
+        const el = glitchEls[Math.floor(Math.random() * glitchEls.length)];
+        if (el) triggerGlitch(el);
+      }
+      setTimeout(storm, 400 + Math.random() * 1000);
+    }
+    setTimeout(() => { glitchEls.forEach(el => triggerGlitch(el)); }, 400);
+    storm();
+
+    // ==============================================================
+    // RENDER DATA
+    // ==============================================================
+    document.getElementById('stickyPrice').textContent = idx.price ? idx.price.toLocaleString() : '--';
+    document.getElementById('stickyChange').textContent = fmtPct(idx.change);
+    document.getElementById('stickyChange').className = 'change ' + cls(idx.change) + ' glitch-text';
+    document.getElementById('stickyUp').textContent = idx.up;
+    document.getElementById('stickyDown').textContent = idx.down;
+    document.getElementById('stickyTrend').textContent = fmtPct(idx.change);
+    document.getElementById('stickyDate').textContent = DATA.date;
+
+    document.getElementById('mainPrice').textContent = idx.price ? idx.price.toLocaleString() : '--';
+    document.getElementById('mainChange').textContent = fmtPct(idx.change);
+    document.getElementById('mainChange').className = 'price-change ' + cls(idx.change) + ' glitch-text';
+    document.getElementById('prevClose').textContent = idx.prev_close ? idx.prev_close.toLocaleString() : '--';
+
+    if (history && history.length > 0) {
+      const high = Math.max(...history);
+      const low = Math.min(...history);
+      document.getElementById('highPrice').textContent = high.toLocaleString();
+      document.getElementById('lowPrice').textContent = low.toLocaleString();
+    }
+
+    document.getElementById('kpiUp').textContent = idx.up;
+    document.getElementById('kpiDown').textContent = idx.down;
+    const trend30 = history.length >= 2 ? ((history[history.length-1] - history[0]) / history[0] * 100) : 0;
+    document.getElementById('kpiTrend').textContent = (trend30 >= 0 ? '+' : '') + trend30.toFixed(2) + '%';
+    document.getElementById('kpiTrend').className = 'number ' + cls(trend30) + ' glitch-text';
+
+    const bins = DATA.bins;
+    const labels = bins.labels;
+    const counts = bins.counts;
+    const distGrid = document.getElementById('distGrid');
+    labels.forEach((lbl, i) => {
+      const isUp = i >= 4;
+      const span = document.createElement('span');
+      span.className = 'dist-chip ' + (isUp ? 'rise' : 'fall');
+      span.innerHTML = '<span class="num ' + (isUp ? 'rise' : 'fall') + ' glitch-text">' + counts[i] + '</span> ' + lbl;
+      distGrid.appendChild(span);
+    });
+    document.getElementById('distUp').textContent = idx.up;
+    document.getElementById('distDown').textContent = idx.down;
+    document.getElementById('distFlat').textContent = idx.flat || 0;
+
+    const flowList = document.getElementById('flowList');
+    const topStocks = stocks.slice().sort((a, b) => b.weight - a.weight).slice(0, 10);
+    topStocks.forEach(s => {
+      const row = document.createElement('div');
+      row.className = 'flow-row';
+      row.innerHTML = `
+        <span class="left-part">
+          <span class="ticker glitch-text">${s.ticker}</span>
+          <span class="name">${s.name}</span>
+        </span>
+        <span class="right-part">
+          <span class="weight">${s.weight.toFixed(1)}%</span>
+          <span class="change ${cls(s.change)} glitch-text">${fmtPct(s.change)}</span>
+        </span>
+      `;
+      flowList.appendChild(row);
+    });
+    const othersRow = document.createElement('div');
+    othersRow.className = 'flow-row others';
+    othersRow.textContent = 'Others (' + (stocks.length - 10) + ' stocks) · Total Weight ' + (100 - topStocks.reduce((a,b) => a + b.weight, 0)).toFixed(1) + '%';
+    flowList.appendChild(othersRow);
+
+    const sorted = stocks.slice().sort((a, b) => b.change - a.change);
+    const top5 = sorted.slice(0, 5);
+    const bottom5 = sorted.slice(-5).reverse();
+    const leaderGrid = document.getElementById('leaderGrid');
+    const col1 = document.createElement('div');
+    col1.className = 'leader-col';
+    col1.innerHTML = '<div class="col-title" style="color:var(--color-rise);">TOP GAINERS</div>';
+    top5.forEach(s => {
+      const item = document.createElement('div');
+      item.className = 'leader-item';
+      item.innerHTML = `<span class="glitch-text" title="${s.name}">${s.ticker}</span><span class="val glitch-text" style="color:var(--color-rise);">${fmtPct(s.change)}</span>`;
+      col1.appendChild(item);
+    });
+    const col2 = document.createElement('div');
+    col2.className = 'leader-col';
+    col2.innerHTML = '<div class="col-title" style="color:var(--color-fall);">TOP LOSERS</div>';
+    bottom5.forEach(s => {
+      const item = document.createElement('div');
+      item.className = 'leader-item';
+      item.innerHTML = `<span class="glitch-text" title="${s.name}">${s.ticker}</span><span class="val glitch-text" style="color:var(--color-fall);">${fmtPct(s.change)}</span>`;
+      col2.appendChild(item);
+    });
+    leaderGrid.appendChild(col1);
+    leaderGrid.appendChild(col2);
+
+    if (history.length >= 2) {
+      const change30 = (history[history.length-1] - history[0]) / history[0] * 100;
+      const high = Math.max(...history);
+      const low = Math.min(...history);
+      const latest = history[history.length-1];
+      document.getElementById('trendChange').textContent = fmtPct(change30);
+      document.getElementById('trendChange').className = 'value glitch-text ' + cls(change30);
+      document.getElementById('trendHigh').textContent = high.toLocaleString();
+      document.getElementById('trendLow').textContent = low.toLocaleString();
+      document.getElementById('trendLatest').textContent = latest.toLocaleString();
+
+      const mini = document.getElementById('miniPrices');
+      mini.innerHTML = '<span>Last 5D</span>';
+      const last5 = history.slice(-5);
+      last5.forEach((v, i) => {
+        const span = document.createElement('span');
+        span.className = 'glitch-text';
+        if (i === last5.length - 1) span.className += ' latest';
+        span.textContent = v.toLocaleString();
+        mini.appendChild(span);
+      });
+    }
+
+    document.getElementById('buildTime').textContent = new Date().toLocaleString('en-US', { hour12: false });
+
+    // ==============================================================
+    // TICKER
+    // ==============================================================
+    function buildTickerHTML(data) {
+      let html = '';
+      const items = data.slice().sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
+      for (let rep = 0; rep < 3; rep++) {
+        items.forEach(item => {
+          const cls = item.change >= 0 ? 'up' : 'down';
+          html += `<span class="glitch-text">${item.ticker} <span class="${cls}">${fmtPct(item.change)}</span> <span style="color:var(--text-dim);">|</span></span>`;
+        });
+      }
+      return html;
+    }
+
+    document.getElementById('tickerTopInner').innerHTML = buildTickerHTML(stocks);
+    document.getElementById('tickerBottomTrack').innerHTML = buildTickerHTML(stocks);
+
+    const topTrack = document.querySelector('.sticky-top .track-inner');
+    const bottomTrack = document.querySelector('.sticky-bottom .ticker-track');
+    [topTrack, bottomTrack].forEach(track => {
+      if (track) {
+        track.addEventListener('mouseenter', () => { track.style.animationPlayState = 'paused'; });
+        track.addEventListener('mouseleave', () => { track.style.animationPlayState = 'running'; });
+      }
+    });
+
+    // ==============================================================
+    // PRICE SWITCH (NDX / Value)
+    // ==============================================================
+    const stickyPrice = document.getElementById('stickyPrice');
+    let showNDX = false;
+    let switching = false;
+    let priceValue = idx.price ? idx.price.toLocaleString() : '--';
+
+    function switchPrice() {
+      if (switching || !stickyPrice) return;
+      switching = true;
+      triggerGlitch(stickyPrice);
+      setTimeout(() => {
+        stickyPrice.textContent = showNDX ? priceValue : 'NDX';
+        showNDX = !showNDX;
+        switching = false;
+      }, 150);
+    }
+    setInterval(switchPrice, 3200);
+    setTimeout(switchPrice, 1200);
+
+    // ==============================================================
+    // DECORATIVE TICK SOUND
+    // ==============================================================
+    setInterval(() => {
+      if (!isMuted && audioReady && Math.random() > 0.7) {
+        playPixelSound('tick');
+      }
+    }, 3000);
+
+    // ==============================================================
+    // NAVIGATION (unchanged)
+    // ==============================================================
+    (function() {
+      const btnPrev = document.getElementById('btnPrev');
+      const btnNext = document.getElementById('btnNext');
+      const btnToday = document.getElementById('btnToday');
+
+      if (!btnPrev || !btnNext) return;
+
+      const path = window.location.pathname;
+      const isHistory = path.includes('/history/');
+      let currentDate = DATA.date;
+
+      if (isHistory) {
+        const m = path.match(/history\/(\d{4}-\d{2}-\d{2})/);
+        if (m) currentDate = m[1];
+        if (btnToday) {
+          btnToday.style.display = 'inline-block';
+          btnToday.onclick = function() {
+            window.location.href = '../index.html';
+          };
+        }
+      } else {
+        if (btnToday) btnToday.style.display = 'none';
+      }
+
+      if (!HISTORY_DATES || HISTORY_DATES.length === 0) {
+        btnPrev.disabled = true;
+        btnNext.disabled = true;
+        return;
+      }
+
+      const idx2 = HISTORY_DATES.indexOf(currentDate);
+      if (idx2 === -1) {
+        btnPrev.disabled = true;
+        btnNext.disabled = true;
+        return;
+      }
+
+      if (idx2 > 0) {
+        const prevDate = HISTORY_DATES[idx2 - 1];
+        btnPrev.disabled = false;
+        btnPrev.onclick = function() {
+          window.location.href = isHistory ? './' + prevDate + '.html' : './history/' + prevDate + '.html';
+        };
+      } else {
+        btnPrev.disabled = true;
+      }
+
+      if (idx2 < HISTORY_DATES.length - 1) {
+        const nextDate = HISTORY_DATES[idx2 + 1];
+        btnNext.disabled = false;
+        if (nextDate === DATA.date && isHistory) {
+          btnNext.onclick = function() {
+            window.location.href = '../index.html';
+          };
+        } else {
+          btnNext.onclick = function() {
+            window.location.href = isHistory ? './' + nextDate + '.html' : './history/' + nextDate + '.html';
+          };
+        }
+      } else {
+        btnNext.disabled = true;
+      }
+    })();
+
+    console.log('✦ PIXEL TERMINAL · 8-bit SFX · Grid background ✦');
+  </script>
+</body>
+</html>
